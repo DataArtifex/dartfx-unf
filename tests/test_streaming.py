@@ -54,7 +54,7 @@ class TestMemoryDetection:
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture()
+@pytest.fixture
 def sample_csv(tmp_path: Path) -> Path:
     """Create a small CSV with mixed types for testing."""
     df = pl.DataFrame(
@@ -81,7 +81,7 @@ def sample_csv(tmp_path: Path) -> Path:
     return path
 
 
-@pytest.fixture()
+@pytest.fixture
 def sample_parquet(tmp_path: Path) -> Path:
     """Create a small Parquet file with mixed types for testing."""
     df = pl.DataFrame(
@@ -96,7 +96,7 @@ def sample_parquet(tmp_path: Path) -> Path:
     return path
 
 
-@pytest.fixture()
+@pytest.fixture
 def date_csv(tmp_path: Path) -> Path:
     """Create a CSV with date-like columns for testing datetime streaming."""
     df = pl.DataFrame(

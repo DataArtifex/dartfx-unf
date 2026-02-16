@@ -389,6 +389,7 @@ def _iter_batches(
     path: Path,
     suffix: str,
     batch_size: int,
+    infer_schema_length: int = 10_000,
 ) -> Iterator[pl.DataFrame]:
     """Yield successive ``DataFrame`` batches from *path*.
 
@@ -397,7 +398,9 @@ def _iter_batches(
       row-group-aware streaming, then converts each batch to Polars.
     """
     if suffix in _CSV_EXTENSIONS:
-        yield from _iter_batches_csv(path, batch_size, _get_separator(suffix))
+        yield from _iter_batches_csv(
+            path, batch_size, _get_separator(suffix), infer_schema_length
+        )
     else:
         yield from _iter_batches_parquet(path, batch_size)
 
@@ -406,16 +409,19 @@ def _iter_batches_csv(
     path: Path,
     batch_size: int,
     separator: str,
+    infer_schema_length: int = 10_000,
 ) -> Iterator[pl.DataFrame]:
     """Yield CSV row batches via ``pl.scan_csv().collect_batches()``.
 
     Uses the modern Polars streaming API (``scan_csv`` + ``collect_batches``)
     which replaces the deprecated ``read_csv_batched``.
     """
+    # -1 means scan all rows, so pass None to Polars
+    schema_length = None if infer_schema_length == -1 else infer_schema_length
     lf = pl.scan_csv(
         path,
         separator=separator,
-        infer_schema_length=10_000,
+        infer_schema_length=schema_length,
     )
     yield from lf.collect_batches(chunk_size=batch_size)
 
@@ -444,6 +450,7 @@ def unf_file(
     label: str | None = None,
     streaming: bool | None = None,
     batch_size: int = DEFAULT_BATCH_SIZE,
+    infer_schema_length: int = 10_000,
 ) -> UNFReport:
     """Compute the UNF fingerprint for a CSV or Parquet data file.
 
@@ -459,6 +466,9 @@ def unf_file(
         system memory.
     batch_size : int
         Number of rows per batch in streaming mode (default 100 000).
+    infer_schema_length : int
+        Number of rows to scan for CSV schema inference (default 10 000).
+        Use -1 to scan all rows.
 
     Returns
     -------
@@ -485,10 +495,12 @@ def unf_file(
         logger.info(
             "Processing %s in streaming mode (batch_size=%d)", path.name, batch_size
         )
-        return _unf_file_streaming(path, suffix, params, label, batch_size)
+        return _unf_file_streaming(
+            path, suffix, params, label, batch_size, infer_schema_length
+        )
 
     logger.info("Processing %s in-memory", path.name)
-    return _unf_file_memory(path, suffix, params, label)
+    return _unf_file_memory(path, suffix, params, label, infer_schema_length)
 
 
 def _unf_file_memory(
@@ -496,13 +508,16 @@ def _unf_file_memory(
     suffix: str,
     params: UNFParameters,
     label: str | None,
+    infer_schema_length: int = 10_000,
 ) -> UNFReport:
     """Process a file entirely in memory with parallel column hashing."""
     if suffix == ".parquet":
         df = pl.read_parquet(path)
     else:
+        # -1 means scan all rows, so pass None to Polars
+        schema_length = None if infer_schema_length == -1 else infer_schema_length
         df = pl.read_csv(
-            path, separator=_get_separator(suffix), infer_schema_length=10_000
+            path, separator=_get_separator(suffix), infer_schema_length=schema_length
         )
 
     report = unf_dataframe(df, params=params, label=label or path.name)
@@ -515,6 +530,7 @@ def _unf_file_streaming(
     params: UNFParameters,
     label: str | None,
     batch_size: int,
+    infer_schema_length: int = 10_000,
 ) -> UNFReport:
     """Process a file in streaming mode using incremental SHA-256 hashers.
 
@@ -530,7 +546,7 @@ def _unf_file_streaming(
     rows_processed = 0
 
     with ThreadPoolExecutor() as executor:
-        for batch_df in _iter_batches(path, suffix, batch_size):
+        for batch_df in _iter_batches(path, suffix, batch_size, infer_schema_length):
             batch_rows = len(batch_df)
 
             # First batch: initialise per-column hashers.
@@ -600,6 +616,7 @@ def unf_dataset(
     label: str | None = None,
     streaming: bool | None = None,
     batch_size: int = DEFAULT_BATCH_SIZE,
+    infer_schema_length: int = 10_000,
 ) -> UNFReport:
     """Compute the combined UNF of multiple files (e.g. a partitioned dataset).
 
@@ -618,6 +635,8 @@ def unf_dataset(
         Whether to use streaming mode for individual files.
     batch_size : int, optional
         Rows per batch for streaming.
+    infer_schema_length : int, optional
+        Number of rows to scan for CSV schema inference. Use -1 to scan all rows.
 
     Returns
     -------
@@ -637,7 +656,13 @@ def unf_dataset(
 
     # Parallel file processing
     def process_file(p: str | Path) -> FileResult:
-        report = unf_file(p, params=params, streaming=streaming, batch_size=batch_size)
+        report = unf_file(
+            p,
+            params=params,
+            streaming=streaming,
+            batch_size=batch_size,
+            infer_schema_length=infer_schema_length,
+        )
         assert isinstance(report.result, FileResult)
         return report.result
 

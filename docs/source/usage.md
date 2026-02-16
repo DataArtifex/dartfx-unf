@@ -44,6 +44,7 @@ uv run dartfx-unf file1.csv file2.parquet file3.tsv
 
 *   **`--streaming`**: Force Polars' "out-of-core" streaming mode. Recommended for files larger than 1GB.
 *   **`--batch-size ROWS`**: Set the batch size for streaming operations (default: 100,000).
+*   **`--scan-length ROWS`**: Number of rows to scan for CSV schema inference (default: 10,000). Use `-1` to scan all rows for more accurate type detection.
 
 ---
 
@@ -66,6 +67,10 @@ print(f"UNF: {report.result.unf}")
 from dartfx.unf.parameters import UNFParameters
 params = UNFParameters(digits=9, hash_bits=256)
 report = unf_file("data.csv", params=params)
+
+# Control CSV schema inference
+report = unf_file("data.csv", infer_schema_length=50_000)  # scan 50k rows
+report = unf_file("data.csv", infer_schema_length=-1)     # scan all rows
 ```
 
 ### 2. Large Datasets (Streaming)
@@ -82,6 +87,14 @@ report = unf_file(
     batch_size=100_000
 )
 print(f"UNF: {report.result.unf}")
+
+# For CSV files with uncertain types, scan all rows:
+report = unf_file(
+    "massive_dataset.csv",
+    streaming=True,
+    batch_size=100_000,
+    infer_schema_length=-1  # scan all rows for type detection
+)
 ```
 
 ### 3. Multiple Files (Datasets)

@@ -110,6 +110,13 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="ROWS",
         help="Rows per batch in streaming mode (default: 100000).",
     )
+    parser.add_argument(
+        "--scan-length",
+        type=int,
+        default=10_000,
+        metavar="ROWS",
+        help="Rows to scan for CSV schema inference (default: 10000, use -1 for all).",
+    )
     return parser
 
 
@@ -152,6 +159,7 @@ def main(argv: list[str] | None = None) -> int:
             label=args.label,
             streaming=args.streaming,
             batch_size=args.batch_size,
+            infer_schema_length=args.scan_length,
         )
     else:
         report = unf_dataset(
@@ -160,6 +168,7 @@ def main(argv: list[str] | None = None) -> int:
             label=args.label,
             streaming=args.streaming,
             batch_size=args.batch_size,
+            infer_schema_length=args.scan_length,
         )
 
     if args.verbose:

@@ -70,6 +70,7 @@ def normalize_numeric(
         # Quantize towards zero
         d = d.normalize()
         sign, coefficient, exponent = d.as_tuple()
+        assert isinstance(exponent, int)
         coeff_str = "".join(str(c) for c in coefficient)
         if len(coeff_str) > digits:
             # Calculate the new exponent for the truncated number
@@ -92,6 +93,7 @@ def normalize_numeric(
         # Default: IEEE 754 "round towards nearest, ties to even"
         d = d.normalize()
         sign_d, coefficient, exponent = d.as_tuple()
+        assert isinstance(exponent, int)
         num_digits = len(coefficient)
         if num_digits > digits:
             # Round to N significant digits
@@ -121,6 +123,7 @@ def _format_exponential(d: Decimal) -> bytes:
         0.00073 -> +7.3e-4
     """
     sign_d, coefficient, exponent = d.normalize().as_tuple()
+    assert isinstance(exponent, int)
 
     if not coefficient:
         # Shouldn't reach here (zero handled upstream), but be safe.

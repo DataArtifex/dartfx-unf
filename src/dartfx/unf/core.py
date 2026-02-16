@@ -23,12 +23,12 @@ from __future__ import annotations
 import hashlib
 import logging
 from collections import OrderedDict
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, time, timedelta
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING, BinaryIO
+from typing import TYPE_CHECKING, BinaryIO, cast
 
 import polars as pl
 
@@ -130,6 +130,7 @@ def _normalize_series(
     # Note: MISSING_VALUE (b"\x00\x00\x00") has no terminator.
     null_mask = series.is_null()
 
+    expr: pl.Expr | pl.Series
     if dtype == pl.Boolean:
         # Vectorized Boolean (UNF v6 §Ia.3 -> §Ia.1)
         expr = (
@@ -424,11 +425,11 @@ def _iter_batches_parquet(
     batch_size: int,
 ) -> Iterator[pl.DataFrame]:
     """Yield Parquet row batches via ``pyarrow.parquet``."""
-    import pyarrow.parquet as pq
+    import pyarrow.parquet as pq  # type: ignore
 
-    pf = pq.ParquetFile(path)
+    pf = pq.ParquetFile(path)  # type: ignore
     for record_batch in pf.iter_batches(batch_size=batch_size):
-        yield pl.from_arrow(record_batch)
+        yield cast(pl.DataFrame, pl.from_arrow(record_batch))
 
 
 # ---------------------------------------------------------------------------
@@ -593,7 +594,7 @@ def _unf_file_streaming(
 
 
 def unf_dataset(
-    paths: list[str | Path],
+    paths: Sequence[str | Path],
     *,
     params: UNFParameters | None = None,
     label: str | None = None,

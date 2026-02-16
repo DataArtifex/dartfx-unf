@@ -9,9 +9,6 @@ Top-Level Interface
 For most common tasks, you can use the functions re-exported at the package level.
 
 .. automodule:: dartfx.unf
-   :members:
-   :undoc-members:
-   :show-inheritance:
    :noindex:
 
 Core Computation

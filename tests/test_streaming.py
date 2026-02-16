@@ -15,6 +15,7 @@ import pytest
 from dartfx.unf.core import unf_file
 from dartfx.unf.memory import get_available_memory, should_stream
 from dartfx.unf.parameters import UNFParameters
+from dartfx.unf.report import FileResult
 
 # ---------------------------------------------------------------------------
 # Memory detection
@@ -129,6 +130,9 @@ class TestStreamingEquivalence:
         report_mem = unf_file(sample_csv, streaming=False)
         report_stream = unf_file(sample_csv, streaming=True, batch_size=3)
 
+        assert isinstance(report_mem.result, FileResult)
+        assert isinstance(report_stream.result, FileResult)
+
         mem_col_unfs = {c.name: c.unf for c in report_mem.result.columns}
         stream_col_unfs = {c.name: c.unf for c in report_stream.result.columns}
 
@@ -143,6 +147,9 @@ class TestStreamingEquivalence:
     def test_parquet_column_unfs_match(self, sample_parquet: Path):
         report_mem = unf_file(sample_parquet, streaming=False)
         report_stream = unf_file(sample_parquet, streaming=True, batch_size=10)
+
+        assert isinstance(report_mem.result, FileResult)
+        assert isinstance(report_stream.result, FileResult)
 
         mem_col_unfs = {c.name: c.unf for c in report_mem.result.columns}
         stream_col_unfs = {c.name: c.unf for c in report_stream.result.columns}

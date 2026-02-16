@@ -16,6 +16,8 @@
 
 Built on top of the **Polars** engine, it provides native support for massive datasets with a professional-grade CLI and a clean Python API.
 
+*This package was vibe coded with Claude Opus 4.6 and Gemini 3 Flash.*
+
 ---
 
 ## Key Features

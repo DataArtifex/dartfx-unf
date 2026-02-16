@@ -1,0 +1,123 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dartfx-unf"
+dynamic = ["version"]
+description = ''
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+keywords = []
+authors = [{ name = "kulnor", email = "pascal@codata.org" }]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: Implementation :: CPython",
+]
+dependencies = ["jsonschema>=4.26.0", "polars>=1.0.0", "pyarrow>=15.0.0"]
+
+[project.scripts]
+dartfx-unf = "dartfx.unf.cli:main"
+
+[project.urls]
+Documentation = "https://github.com/DataArtifex/dartfx-unf#readme"
+Issues = "https://github.com/DataArtifex/dartfx-unf/issues"
+Source = "https://github.com/DataArtifex/dartfx-unf"
+
+
+[tool.hatch.build.targets.sdist]
+exclude = ["/.github", "/docs"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dartfx"]
+
+[tool.hatch.version]
+path = "src/dartfx/unf/__about__.py"
+
+[dependency-groups]
+dev = [
+  "coverage[toml]>=6.5",
+  "pytest>=7.0.0",
+  "mypy>=1.0.0",
+  "python-dotenv>=1.0.0",
+  "ruff>=0.3.0",
+  "psutil>=7.2.2",
+  "pre-commit>=4.5.1",
+]
+docs = [
+  "sphinx>=7.0.0",
+  "sphinx-rtd-theme>=1.2.0",
+  "myst-parser>=1.0.0",
+  "sphinx-copybutton>=0.5.0",
+]
+
+[tool.hatch.envs.default]
+dependencies = ["dev"]
+[tool.hatch.envs.default.scripts]
+test = "pytest {args:tests}"
+test-cov = "coverage run -m pytest {args:tests}"
+cov-report = ["- coverage combine", "coverage report"]
+cov = ["test-cov", "cov-report"]
+
+[[tool.hatch.envs.all.matrix]]
+python = ["3.12", "3.13"]
+
+[tool.hatch.envs.types]
+dependencies = ["dev"]
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/dartfx/unf tests}"
+
+[tool.hatch.envs.docs]
+dependencies = ["docs"]
+[tool.hatch.envs.docs.scripts]
+build = "sphinx-build -b html docs/source docs/build/html"
+serve = "python -m http.server -d docs/build/html"
+
+
+[tool.coverage.run]
+source_pkgs = ["unf", "tests"]
+branch = true
+parallel = true
+omit = ["src/dartfx/unf/__about__.py"]
+
+[tool.coverage.paths]
+source = ["src/dartfx/unf", "*/dartfx-unf/src/dartfx/unf"]
+tests = ["tests", "*/dartfx/dartfx-unf/tests"]
+
+[tool.coverage.report]
+exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
+
+[tool.pytest.ini_options]
+pythonpath = "src"
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+  "E",   # pycodestyle errors
+  "W",   # pycodestyle warnings
+  "F",   # pyflakes
+  "I",   # isort
+  "B",   # flake8-bugbear
+  "C4",  # flake8-comprehensions
+  "UP",  # pyupgrade
+  "ARG", # flake8-unused-arguments
+  "PT",  # flake8-pytest-style
+]
+ignore = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["unf"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

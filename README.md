@@ -7,6 +7,7 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 [![Documentation](https://img.shields.io/badge/docs-v6-blue)](https://dataartifex.github.io/dartfx-unf/)
+[![DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/DataArtifex/dartfx-unf)
 
 **A high-performance Python implementation of the Universal Number Fingerprint (UNF) v6 specification.**
 

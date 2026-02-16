@@ -475,6 +475,7 @@
     <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
     <span class="n">suffix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">infer_schema_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Yield successive ``DataFrame`` batches from *path*.</span>
 
@@ -483,7 +484,9 @@
 <span class="sd">      row-group-aware streaming, then converts each batch to Polars.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="n">_CSV_EXTENSIONS</span><span class="p">:</span>
-        <span class="k">yield from</span> <span class="n">_iter_batches_csv</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">_get_separator</span><span class="p">(</span><span class="n">suffix</span><span class="p">))</span>
+        <span class="k">yield from</span> <span class="n">_iter_batches_csv</span><span class="p">(</span>
+            <span class="n">path</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">_get_separator</span><span class="p">(</span><span class="n">suffix</span><span class="p">),</span> <span class="n">infer_schema_length</span>
+        <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">yield from</span> <span class="n">_iter_batches_parquet</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
 
@@ -492,16 +495,19 @@
     <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">separator</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">infer_schema_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Yield CSV row batches via ``pl.scan_csv().collect_batches()``.</span>
 
 <span class="sd">    Uses the modern Polars streaming API (``scan_csv`` + ``collect_batches``)</span>
 <span class="sd">    which replaces the deprecated ``read_csv_batched``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># -1 means scan all rows, so pass None to Polars</span>
+    <span class="n">schema_length</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">infer_schema_length</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="k">else</span> <span class="n">infer_schema_length</span>
     <span class="n">lf</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">scan_csv</span><span class="p">(</span>
         <span class="n">path</span><span class="p">,</span>
         <span class="n">separator</span><span class="o">=</span><span class="n">separator</span><span class="p">,</span>
-        <span class="n">infer_schema_length</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
+        <span class="n">infer_schema_length</span><span class="o">=</span><span class="n">schema_length</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">yield from</span> <span class="n">lf</span><span class="o">.</span><span class="n">collect_batches</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
 
@@ -532,6 +538,7 @@
     <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">streaming</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_BATCH_SIZE</span><span class="p">,</span>
+    <span class="n">infer_schema_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UNFReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the UNF fingerprint for a CSV or Parquet data file.</span>
 
@@ -547,6 +554,9 @@
 <span class="sd">        system memory.</span>
 <span class="sd">    batch_size : int</span>
 <span class="sd">        Number of rows per batch in streaming mode (default 100 000).</span>
+<span class="sd">    infer_schema_length : int</span>
+<span class="sd">        Number of rows to scan for CSV schema inference (default 10 000).</span>
+<span class="sd">        Use -1 to scan all rows.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -573,10 +583,12 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
             <span class="s2">&quot;Processing </span><span class="si">%s</span><span class="s2"> in streaming mode (batch_size=</span><span class="si">%d</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">batch_size</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">_unf_file_streaming</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_unf_file_streaming</span><span class="p">(</span>
+            <span class="n">path</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">infer_schema_length</span>
+        <span class="p">)</span>
 
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Processing </span><span class="si">%s</span><span class="s2"> in-memory&quot;</span><span class="p">,</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">_unf_file_memory</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">_unf_file_memory</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">infer_schema_length</span><span class="p">)</span></div>
 
 
 
@@ -585,13 +597,16 @@
     <span class="n">suffix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">params</span><span class="p">:</span> <span class="n">UNFParameters</span><span class="p">,</span>
     <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">infer_schema_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UNFReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Process a file entirely in memory with parallel column hashing.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.parquet&quot;</span><span class="p">:</span>
         <span class="n">df</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">read_parquet</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># -1 means scan all rows, so pass None to Polars</span>
+        <span class="n">schema_length</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">infer_schema_length</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="k">else</span> <span class="n">infer_schema_length</span>
         <span class="n">df</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
-            <span class="n">path</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="n">_get_separator</span><span class="p">(</span><span class="n">suffix</span><span class="p">),</span> <span class="n">infer_schema_length</span><span class="o">=</span><span class="mi">10_000</span>
+            <span class="n">path</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="n">_get_separator</span><span class="p">(</span><span class="n">suffix</span><span class="p">),</span> <span class="n">infer_schema_length</span><span class="o">=</span><span class="n">schema_length</span>
         <span class="p">)</span>
 
     <span class="n">report</span> <span class="o">=</span> <span class="n">unf_dataframe</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span> <span class="ow">or</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
@@ -604,6 +619,7 @@
     <span class="n">params</span><span class="p">:</span> <span class="n">UNFParameters</span><span class="p">,</span>
     <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">infer_schema_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UNFReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Process a file in streaming mode using incremental SHA-256 hashers.</span>
 
@@ -619,7 +635,7 @@
     <span class="n">rows_processed</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">()</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">batch_df</span> <span class="ow">in</span> <span class="n">_iter_batches</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">batch_df</span> <span class="ow">in</span> <span class="n">_iter_batches</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">infer_schema_length</span><span class="p">):</span>
             <span class="n">batch_rows</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch_df</span><span class="p">)</span>
 
             <span class="c1"># First batch: initialise per-column hashers.</span>
@@ -691,6 +707,7 @@
     <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">streaming</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_BATCH_SIZE</span><span class="p">,</span>
+    <span class="n">infer_schema_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UNFReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the combined UNF of multiple files (e.g. a partitioned dataset).</span>
 
@@ -709,6 +726,8 @@
 <span class="sd">        Whether to use streaming mode for individual files.</span>
 <span class="sd">    batch_size : int, optional</span>
 <span class="sd">        Rows per batch for streaming.</span>
+<span class="sd">    infer_schema_length : int, optional</span>
+<span class="sd">        Number of rows to scan for CSV schema inference. Use -1 to scan all rows.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -728,7 +747,13 @@
 
     <span class="c1"># Parallel file processing</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_file</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FileResult</span><span class="p">:</span>
-        <span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">streaming</span><span class="o">=</span><span class="n">streaming</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
+        <span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span>
+            <span class="n">p</span><span class="p">,</span>
+            <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span>
+            <span class="n">streaming</span><span class="o">=</span><span class="n">streaming</span><span class="p">,</span>
+            <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+            <span class="n">infer_schema_length</span><span class="o">=</span><span class="n">infer_schema_length</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">result</span><span class="p">,</span> <span class="n">FileResult</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">report</span><span class="o">.</span><span class="n">result</span>
 

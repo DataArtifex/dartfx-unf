@@ -144,6 +144,7 @@
 <ul class="simple">
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">--streaming</span></code></strong>: Force Polars’ “out-of-core” streaming mode. Recommended for files larger than 1GB.</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">--batch-size</span> <span class="pre">ROWS</span></code></strong>: Set the batch size for streaming operations (default: 100,000).</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">--scan-length</span> <span class="pre">ROWS</span></code></strong>: Number of rows to scan for CSV schema inference (default: 10,000). Use <code class="docutils literal notranslate"><span class="pre">-1</span></code> to scan all rows for more accurate type detection.</p></li>
 </ul>
 </section>
 </section>
@@ -164,6 +165,10 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">dartfx.unf.parameters</span><span class="w"> </span><span class="kn">import</span> <span class="n">UNFParameters</span>
 <span class="n">params</span> <span class="o">=</span> <span class="n">UNFParameters</span><span class="p">(</span><span class="n">digits</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span> <span class="n">hash_bits</span><span class="o">=</span><span class="mi">256</span><span class="p">)</span>
 <span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span><span class="s2">&quot;data.csv&quot;</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+
+<span class="c1"># Control CSV schema inference</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span><span class="s2">&quot;data.csv&quot;</span><span class="p">,</span> <span class="n">infer_schema_length</span><span class="o">=</span><span class="mi">50_000</span><span class="p">)</span>  <span class="c1"># scan 50k rows</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span><span class="s2">&quot;data.csv&quot;</span><span class="p">,</span> <span class="n">infer_schema_length</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>     <span class="c1"># scan all rows</span>
 </pre></div>
 </div>
 </section>
@@ -179,6 +184,14 @@
     <span class="n">batch_size</span><span class="o">=</span><span class="mi">100_000</span>
 <span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;UNF: </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">result</span><span class="o">.</span><span class="n">unf</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="c1"># For CSV files with uncertain types, scan all rows:</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span>
+    <span class="s2">&quot;massive_dataset.csv&quot;</span><span class="p">,</span>
+    <span class="n">streaming</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">100_000</span><span class="p">,</span>
+    <span class="n">infer_schema_length</span><span class="o">=-</span><span class="mi">1</span>  <span class="c1"># scan all rows for type detection</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 </section>

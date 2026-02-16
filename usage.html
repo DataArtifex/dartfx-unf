@@ -1,0 +1,268 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Usage Guide &mdash; dartfx-unf 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="UNF v6 Specification Summary" href="spec_summary.html" />
+    <link rel="prev" title="dartfx-unf: High-Performance UNF v6" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html">
+            
+              <img src="_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Usage Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#command-line-interface-cli">Command Line Interface (CLI)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#basic-usage">Basic Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dataset-usage">Dataset Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#formatting-options">Formatting Options</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configuration-flags">Configuration Flags</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#performance-tuning">Performance Tuning</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#python-api">Python API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#file-hashing">1. File Hashing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#large-datasets-streaming">2. Large Datasets (Streaming)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#multiple-files-datasets">3. Multiple Files (Datasets)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#in-memory-data-dataframes-series">4. In-Memory Data (DataFrames &amp; Series)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#exporting-reports">5. Exporting Reports</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="spec_summary.html">UNF v6 Specification Summary</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/modules.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">dartfx-unf</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Usage Guide</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/usage.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="usage-guide">
+<h1>Usage Guide<a class="headerlink" href="#usage-guide" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">dartfx-unf</span></code> provides multiple ways to calculate UNF fingerprints depending on your data source.</p>
+<section id="command-line-interface-cli">
+<h2>Command Line Interface (CLI)<a class="headerlink" href="#command-line-interface-cli" title="Link to this heading"></a></h2>
+<p>The CLI is the easiest way to hash files directly from the terminal.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>dartfx-unf<span class="w"> </span><span class="o">[</span>FILES<span class="o">]</span><span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</pre></div>
+</div>
+<section id="basic-usage">
+<h3>Basic Usage<a class="headerlink" href="#basic-usage" title="Link to this heading"></a></h3>
+<p>Calculate the UNF for a single file. By default, this outputs a full JSON report to stdout.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>dartfx-unf<span class="w"> </span>data.parquet
+</pre></div>
+</div>
+</section>
+<section id="dataset-usage">
+<h3>Dataset Usage<a class="headerlink" href="#dataset-usage" title="Link to this heading"></a></h3>
+<p>Pass multiple files to calculate a dataset-level UNF.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>dartfx-unf<span class="w"> </span>file1.csv<span class="w"> </span>file2.parquet<span class="w"> </span>file3.tsv
+</pre></div>
+</div>
+</section>
+<section id="formatting-options">
+<h3>Formatting Options<a class="headerlink" href="#formatting-options" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">--quiet</span></code> or <code class="docutils literal notranslate"><span class="pre">-q</span></code></strong>: Print <em>only</em> the top-level UNF string. perfect for pipes and shell scripts.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">--verbose</span></code> or <code class="docutils literal notranslate"><span class="pre">-v</span></code></strong>: Print a human-friendly summary table showing UNFs for individual columns (for files) or individual files (for datasets).</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">--output</span> <span class="pre">FILE</span></code> or <code class="docutils literal notranslate"><span class="pre">-o</span> <span class="pre">FILE</span></code></strong>: Save the full JSON report to a file instead of stdout.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">--validate</span></code></strong>: Ensure the JSON report matches the official UNF schema.</p></li>
+</ul>
+</section>
+<section id="configuration-flags">
+<h3>Configuration Flags<a class="headerlink" href="#configuration-flags" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">--digits</span> <span class="pre">N</span></code></strong>: Number of significant digits for numeric precision (default: 7).</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">--hash-bits</span> <span class="pre">H</span></code></strong>: SHA-256 hash truncation in bits (128, 192, 196, or 256).</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">--characters</span> <span class="pre">X</span></code></strong>: String truncation length (default: 128).</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">--truncate</span></code></strong>: Use truncation (R1) instead of IEEE 754 rounding.</p></li>
+</ul>
+</section>
+<section id="performance-tuning">
+<h3>Performance Tuning<a class="headerlink" href="#performance-tuning" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">--streaming</span></code></strong>: Force Polars’ “out-of-core” streaming mode. Recommended for files larger than 1GB.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">--batch-size</span> <span class="pre">ROWS</span></code></strong>: Set the batch size for streaming operations (default: 100,000).</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="python-api">
+<h2>Python API<a class="headerlink" href="#python-api" title="Link to this heading"></a></h2>
+<p>The Python API offers the most flexibility and integration capability.</p>
+<section id="file-hashing">
+<h3>1. File Hashing<a class="headerlink" href="#file-hashing" title="Link to this heading"></a></h3>
+<p>To calculate a UNF for a single file (CSV, Parquet, or TSV):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">dartfx.unf</span><span class="w"> </span><span class="kn">import</span> <span class="n">unf_file</span>
+
+<span class="c1"># Basic calculation</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span><span class="s2">&quot;data.parquet&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;UNF: </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">result</span><span class="o">.</span><span class="n">unf</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="c1"># Customizing parameters</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dartfx.unf.parameters</span><span class="w"> </span><span class="kn">import</span> <span class="n">UNFParameters</span>
+<span class="n">params</span> <span class="o">=</span> <span class="n">UNFParameters</span><span class="p">(</span><span class="n">digits</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span> <span class="n">hash_bits</span><span class="o">=</span><span class="mi">256</span><span class="p">)</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span><span class="s2">&quot;data.csv&quot;</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="large-datasets-streaming">
+<h3>2. Large Datasets (Streaming)<a class="headerlink" href="#large-datasets-streaming" title="Link to this heading"></a></h3>
+<p>Process datasets that exceed available RAM by leveraging the Polars streaming engine.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">dartfx.unf</span><span class="w"> </span><span class="kn">import</span> <span class="n">unf_file</span>
+
+<span class="c1"># Process a massive file with constant memory usage</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span>
+    <span class="s2">&quot;massive_dataset.parquet&quot;</span><span class="p">,</span>
+    <span class="n">streaming</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">100_000</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;UNF: </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">result</span><span class="o">.</span><span class="n">unf</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="multiple-files-datasets">
+<h3>3. Multiple Files (Datasets)<a class="headerlink" href="#multiple-files-datasets" title="Link to this heading"></a></h3>
+<p>Calculate a combined fingerprint for a collection of files.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">dartfx.unf</span><span class="w"> </span><span class="kn">import</span> <span class="n">unf_dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="c1"># Combine all parts of a partitioned dataset</span>
+<span class="n">files</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;data/&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*.parquet&quot;</span><span class="p">))</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">unf_dataset</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;My Large Dataset&quot;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Dataset-level UNF: </span><span class="si">{</span><span class="n">report</span><span class="o">.</span><span class="n">result</span><span class="o">.</span><span class="n">unf</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="c1"># Access individual file UNFs</span>
+<span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">report</span><span class="o">.</span><span class="n">result</span><span class="o">.</span><span class="n">entries</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">label</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">unf</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="in-memory-data-dataframes-series">
+<h3>4. In-Memory Data (DataFrames &amp; Series)<a class="headerlink" href="#in-memory-data-dataframes-series" title="Link to this heading"></a></h3>
+<p>Calculate UNFs directly on existing Polars objects.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dartfx.unf</span><span class="w"> </span><span class="kn">import</span> <span class="n">unf_dataframe</span><span class="p">,</span> <span class="n">unf_column</span>
+
+<span class="n">df</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+    <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+    <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.1</span><span class="p">,</span> <span class="mf">2.2</span><span class="p">,</span> <span class="mf">3.3</span><span class="p">]</span>
+<span class="p">})</span>
+
+<span class="c1"># Hash the entire DataFrame</span>
+<span class="n">df_report</span> <span class="o">=</span> <span class="n">unf_dataframe</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+<span class="c1"># Hash just a single column</span>
+<span class="n">col_unf</span> <span class="o">=</span> <span class="n">unf_column</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">get_column</span><span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</section>
+<section id="exporting-reports">
+<h3>5. Exporting Reports<a class="headerlink" href="#exporting-reports" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">UNFReport</span></code> object provides structured metadata including column types and timestamps.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span><span class="s2">&quot;data.parquet&quot;</span><span class="p">)</span>
+
+<span class="c1"># Export to a Python dictionary</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">report</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+
+<span class="c1"># Export to a JSON string (optionally validated)</span>
+<span class="n">json_str</span> <span class="o">=</span> <span class="n">report</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">validate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="dartfx-unf: High-Performance UNF v6" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="spec_summary.html" class="btn btn-neutral float-right" title="UNF v6 Specification Summary" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Data Artifex.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

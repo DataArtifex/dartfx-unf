@@ -1,0 +1,500 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>dartfx.unf.normalize &mdash; dartfx-unf 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html">
+            
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spec_summary.html">UNF v6 Specification Summary</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">dartfx-unf</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">dartfx.unf.normalize</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for dartfx.unf.normalize</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-FileCopyrightText: 2024-present kulnor &lt;pascal@codata.org&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># SPDX-License-Identifier: MIT</span>
+
+<span class="sd">&quot;&quot;&quot;Normalization of individual values according to UNF v6 specification.</span>
+
+<span class="sd">This module handles section Ia of the specification:</span>
+<span class="sd">- Numeric normalization (Ia.1)</span>
+<span class="sd">- String normalization (Ia.2)</span>
+<span class="sd">- Boolean normalization (Ia.3)</span>
+<span class="sd">- Date/Time normalization (Ia.5)</span>
+<span class="sd">- Missing value encoding (Ia.6)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">UTC</span><span class="p">,</span> <span class="n">date</span><span class="p">,</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">decimal</span><span class="w"> </span><span class="kn">import</span> <span class="n">ROUND_HALF_EVEN</span><span class="p">,</span> <span class="n">Decimal</span>
+
+<span class="c1"># Sentinel bytes for missing values (3 null bytes, no terminator).</span>
+<span class="n">MISSING_VALUE</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x00\x00\x00</span><span class="s2">&quot;</span>
+
+<span class="c1"># End-of-value terminator: newline + null byte.</span>
+<span class="n">VALUE_TERMINATOR</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\n\x00</span><span class="s2">&quot;</span>
+
+
+<div class="viewcode-block" id="normalize_numeric">
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.normalize.normalize_numeric">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">normalize_numeric</span><span class="p">(</span>
+    <span class="n">value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span><span class="p">,</span> <span class="n">digits</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">7</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">truncate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalize a single numeric value per UNF v6 spec §Ia.1.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    value : float or int</span>
+<span class="sd">        The numeric value to normalize.</span>
+<span class="sd">    digits : int</span>
+<span class="sd">        Number of significant digits (``N``).</span>
+<span class="sd">    truncate : bool</span>
+<span class="sd">        If True, truncate instead of rounding (``R1`` mode).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bytes</span>
+<span class="sd">        The normalized byte representation including the terminator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Handle NaN</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">b</span><span class="s2">&quot;+nan&quot;</span> <span class="o">+</span> <span class="n">VALUE_TERMINATOR</span>
+
+    <span class="c1"># Handle Infinity</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">b</span><span class="s2">&quot;+inf&quot;</span> <span class="o">+</span> <span class="n">VALUE_TERMINATOR</span>
+        <span class="k">return</span> <span class="sa">b</span><span class="s2">&quot;-inf&quot;</span> <span class="o">+</span> <span class="n">VALUE_TERMINATOR</span>
+
+    <span class="c1"># Handle zero (positive and negative)</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># Detect negative zero</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">copysign</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">b</span><span class="s2">&quot;-0.e+&quot;</span> <span class="o">+</span> <span class="n">VALUE_TERMINATOR</span>
+        <span class="k">return</span> <span class="sa">b</span><span class="s2">&quot;+0.e+&quot;</span> <span class="o">+</span> <span class="n">VALUE_TERMINATOR</span>
+
+    <span class="c1"># Use Decimal for precise significant-digit rounding</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">truncate</span><span class="p">:</span>
+        <span class="c1"># R1 mode: truncate to N significant digits</span>
+        <span class="c1"># Quantize towards zero</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>
+        <span class="n">sign</span><span class="p">,</span> <span class="n">coefficient</span><span class="p">,</span> <span class="n">exponent</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">as_tuple</span><span class="p">()</span>
+        <span class="n">coeff_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">coefficient</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">coeff_str</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">digits</span><span class="p">:</span>
+            <span class="c1"># Calculate the new exponent for the truncated number</span>
+            <span class="c1"># The original exponent is for the full coefficient.</span>
+            <span class="c1"># If we truncate, the effective exponent changes.</span>
+            <span class="c1"># Example: 12345E-2, digits=3 -&gt; 123E0</span>
+            <span class="c1"># original: coeff=(1,2,3,4,5), exponent=-2, len=5</span>
+            <span class="c1"># new coeff_str = &quot;123&quot;, new len=3</span>
+            <span class="c1"># sci_exp = exponent + len(coeff) - 1 = -2 + 5 - 1 = 2</span>
+            <span class="c1"># new sci_exp = exponent + len(new_coeff) - 1</span>
+            <span class="c1"># new exponent = new_sci_exp - len(new_coeff) + 1</span>
+            <span class="c1"># new exponent = (exponent + len(coefficient) - 1) - digits + 1</span>
+            <span class="c1">#              = exponent + len(coefficient) - digits</span>
+            <span class="n">new_exponent</span> <span class="o">=</span> <span class="n">exponent</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">coefficient</span><span class="p">)</span> <span class="o">-</span> <span class="n">digits</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span>
+                <span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="k">if</span> <span class="n">sign</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">coeff_str</span><span class="p">[:</span><span class="n">digits</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;E&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">new_exponent</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>  <span class="c1"># Re-normalize after manual truncation</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Default: IEEE 754 &quot;round towards nearest, ties to even&quot;</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>
+        <span class="n">sign_d</span><span class="p">,</span> <span class="n">coefficient</span><span class="p">,</span> <span class="n">exponent</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">as_tuple</span><span class="p">()</span>
+        <span class="n">num_digits</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">coefficient</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">num_digits</span> <span class="o">&gt;</span> <span class="n">digits</span><span class="p">:</span>
+            <span class="c1"># Round to N significant digits</span>
+            <span class="n">shift</span> <span class="o">=</span> <span class="n">num_digits</span> <span class="o">-</span> <span class="n">digits</span>
+            <span class="c1"># quantize targets the exponent of the argument</span>
+            <span class="c1"># e.g., to round 12345 to 3 digits, shift=2.</span>
+            <span class="c1"># original exponent for 12345 is 0 (12345E0).</span>
+            <span class="c1"># We want to round to 12300, which is 123E2.</span>
+            <span class="c1"># The quantizer should be 1E2.</span>
+            <span class="c1"># exponent + shift = 0 + 2 = 2. So &quot;1e2&quot;.</span>
+            <span class="n">quant</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;1e&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">exponent</span> <span class="o">+</span> <span class="n">shift</span><span class="p">))</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">quantize</span><span class="p">(</span><span class="n">quant</span><span class="p">,</span> <span class="n">rounding</span><span class="o">=</span><span class="n">ROUND_HALF_EVEN</span><span class="p">)</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>
+
+    <span class="c1"># Convert to our exponential format</span>
+    <span class="k">return</span> <span class="n">_format_exponential</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="o">+</span> <span class="n">VALUE_TERMINATOR</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_format_exponential</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="n">Decimal</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Format a Decimal into UNF exponential notation.</span>
+
+<span class="sd">    Format: ``[+-]D.DDD...e[+-]EEE``</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        1      -&gt; +1.e+</span>
+<span class="sd">        -300   -&gt; -3.e+2</span>
+<span class="sd">        0.00073 -&gt; +7.3e-4</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sign_d</span><span class="p">,</span> <span class="n">coefficient</span><span class="p">,</span> <span class="n">exponent</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span><span class="o">.</span><span class="n">as_tuple</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">coefficient</span><span class="p">:</span>
+        <span class="c1"># Shouldn&#39;t reach here (zero handled upstream), but be safe.</span>
+        <span class="n">sign_char</span> <span class="o">=</span> <span class="s2">&quot;-&quot;</span> <span class="k">if</span> <span class="n">sign_d</span> <span class="k">else</span> <span class="s2">&quot;+&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">sign_char</span> <span class="o">+</span> <span class="s2">&quot;0.e+&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
+
+    <span class="n">sign_char</span> <span class="o">=</span> <span class="s2">&quot;-&quot;</span> <span class="k">if</span> <span class="n">sign_d</span> <span class="k">else</span> <span class="s2">&quot;+&quot;</span>
+
+    <span class="n">coeff_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">coefficient</span><span class="p">)</span>
+
+    <span class="c1"># The exponent in UNF notation:</span>
+    <span class="c1"># Decimal(&quot;3E+2&quot;) means 300, tuple gives exponent=2, coeff=(3,)</span>
+    <span class="c1"># We want &quot;+3.e+2&quot;</span>
+    <span class="c1"># Decimal(&quot;3.1415&quot;) normalized gives coeff=(3,1,4,1,5), exponent=-4</span>
+    <span class="c1"># scientific exponent = exponent + len(coeff) - 1</span>
+    <span class="n">sci_exp</span> <span class="o">=</span> <span class="n">exponent</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">coeff_str</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="c1"># Build mantissa: leading digit, then &quot;.&quot; then remaining digits</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">coeff_str</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">mantissa</span> <span class="o">=</span> <span class="n">coeff_str</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mantissa</span> <span class="o">=</span> <span class="n">coeff_str</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="n">coeff_str</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="c1"># Remove trailing zeros from fractional part</span>
+        <span class="n">mantissa</span> <span class="o">=</span> <span class="n">mantissa</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mantissa</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
+            <span class="k">pass</span>  <span class="c1"># Keep the trailing dot</span>
+
+    <span class="c1"># Build exponent part</span>
+    <span class="k">if</span> <span class="n">sci_exp</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">exp_part</span> <span class="o">=</span> <span class="s2">&quot;e+&quot;</span> <span class="o">+</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">sci_exp</span><span class="p">)</span> <span class="k">if</span> <span class="n">sci_exp</span> <span class="o">!=</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">exp_part</span> <span class="o">=</span> <span class="s2">&quot;e&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">sci_exp</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">sign_char</span> <span class="o">+</span> <span class="n">mantissa</span> <span class="o">+</span> <span class="n">exp_part</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="normalize_string">
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.normalize.normalize_string">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">normalize_string</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_chars</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">128</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalize a character string per UNF v6 spec §Ia.2.</span>
+
+<span class="sd">    Encode as UTF-8, truncate to ``max_chars`` characters, then add</span>
+<span class="sd">    the newline + null terminator.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    value : str</span>
+<span class="sd">        The string value to normalize.</span>
+<span class="sd">    max_chars : int</span>
+<span class="sd">        Maximum number of characters to keep (``X``).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bytes</span>
+<span class="sd">        The normalized byte representation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">truncated</span> <span class="o">=</span> <span class="n">value</span><span class="p">[:</span><span class="n">max_chars</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">truncated</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">VALUE_TERMINATOR</span></div>
+
+
+
+<div class="viewcode-block" id="normalize_boolean">
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.normalize.normalize_boolean">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">normalize_boolean</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalize a boolean value per UNF v6 spec §Ia.3.</span>
+
+<span class="sd">    Booleans are treated as numeric 1 (True) or 0 (False).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">value</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">b</span><span class="s2">&quot;+1.e+&quot;</span> <span class="o">+</span> <span class="n">VALUE_TERMINATOR</span>
+    <span class="k">return</span> <span class="sa">b</span><span class="s2">&quot;+0.e+&quot;</span> <span class="o">+</span> <span class="n">VALUE_TERMINATOR</span></div>
+
+
+
+<div class="viewcode-block" id="normalize_bit_field">
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.normalize.normalize_bit_field">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">normalize_bit_field</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalize a bit field value per UNF v6 spec §Ia.4.</span>
+
+<span class="sd">    Normalization steps:</span>
+<span class="sd">    1. Convert to big-endian form (implicit in binary input).</span>
+<span class="sd">    2. Truncate leading zero bits.</span>
+<span class="sd">    3. Align to a byte boundary (minimise bytes needed).</span>
+<span class="sd">    4. Base64 encode the result.</span>
+<span class="sd">    5. Append terminator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># 0. Handle empty</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">VALUE_TERMINATOR</span>
+
+    <span class="c1"># 1-3. Big-endian integer conversion and minimal byte retrieval</span>
+    <span class="c1"># handles steps 1 (big-endian), 2 (truncate leading zeros),</span>
+    <span class="c1"># and 3 (align to byte boundary) by getting the minimal byte</span>
+    <span class="c1"># representation of the underlying integer.</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;big&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">minimal_bytes</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">num_bytes</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">bit_length</span><span class="p">()</span> <span class="o">+</span> <span class="mi">7</span><span class="p">)</span> <span class="o">//</span> <span class="mi">8</span>
+        <span class="n">minimal_bytes</span> <span class="o">=</span> <span class="n">i</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span><span class="n">num_bytes</span><span class="p">,</span> <span class="s2">&quot;big&quot;</span><span class="p">)</span>
+
+    <span class="c1"># 4. Base64 encode</span>
+    <span class="n">b64</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">minimal_bytes</span><span class="p">)</span>
+
+    <span class="c1"># 5. Append terminator</span>
+    <span class="k">return</span> <span class="n">b64</span> <span class="o">+</span> <span class="n">VALUE_TERMINATOR</span></div>
+
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># §Ia.5 – Date, Time, and Interval normalization</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_format_time_component</span><span class="p">(</span><span class="n">t</span><span class="p">:</span> <span class="n">time</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Format a time value per UNF v6 spec §Ia.5b.</span>
+
+<span class="sd">    Format: ``hh:mm:ss[.fffff]``</span>
+
+<span class="sd">    - ``hh``, ``mm``, ``ss`` are 2-digit, zero-padded.</span>
+<span class="sd">    - Fractional seconds contain no trailing zeros; omitted if zero.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">base</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">hour</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">minute</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">second</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">microsecond</span><span class="p">:</span>
+        <span class="c1"># Format microseconds as up to 6 digits, strip trailing zeros</span>
+        <span class="n">frac</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">microsecond</span><span class="si">:</span><span class="s2">06d</span><span class="si">}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">frac</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="k">return</span> <span class="n">base</span>
+
+
+<div class="viewcode-block" id="normalize_date">
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.normalize.normalize_date">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">normalize_date</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">date</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalize a date value per UNF v6 spec §Ia.5a.</span>
+
+<span class="sd">    Format: ``YYYY-MM-DD``, zero-padded.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    value : datetime.date</span>
+<span class="sd">        The date value to normalize.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bytes</span>
+<span class="sd">        The normalized byte representation including the terminator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">formatted</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">value</span><span class="o">.</span><span class="n">year</span><span class="si">:</span><span class="s2">04d</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">value</span><span class="o">.</span><span class="n">month</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">value</span><span class="o">.</span><span class="n">day</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">return</span> <span class="n">formatted</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">VALUE_TERMINATOR</span></div>
+
+
+
+<div class="viewcode-block" id="normalize_time">
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.normalize.normalize_time">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">normalize_time</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">time</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalize a time value per UNF v6 spec §Ia.5b.</span>
+
+<span class="sd">    Format: ``hh:mm:ss[.fffff][Z]``</span>
+
+<span class="sd">    If the time has timezone information, it is converted to UTC and</span>
+<span class="sd">    a ``Z`` suffix is appended.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    value : datetime.time</span>
+<span class="sd">        The time value to normalize.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bytes</span>
+<span class="sd">        The normalized byte representation including the terminator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">tzinfo</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Convert to UTC: create a dummy datetime to perform the conversion</span>
+        <span class="n">dummy_dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span>
+            <span class="mi">2000</span><span class="p">,</span>
+            <span class="mi">1</span><span class="p">,</span>
+            <span class="mi">1</span><span class="p">,</span>
+            <span class="n">value</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span>
+            <span class="n">value</span><span class="o">.</span><span class="n">minute</span><span class="p">,</span>
+            <span class="n">value</span><span class="o">.</span><span class="n">second</span><span class="p">,</span>
+            <span class="n">value</span><span class="o">.</span><span class="n">microsecond</span><span class="p">,</span>
+            <span class="n">tzinfo</span><span class="o">=</span><span class="n">value</span><span class="o">.</span><span class="n">tzinfo</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">utc_dt</span> <span class="o">=</span> <span class="n">dummy_dt</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">UTC</span><span class="p">)</span>
+        <span class="n">formatted</span> <span class="o">=</span> <span class="n">_format_time_component</span><span class="p">(</span><span class="n">utc_dt</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot;Z&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">formatted</span> <span class="o">=</span> <span class="n">_format_time_component</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">formatted</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">VALUE_TERMINATOR</span></div>
+
+
+
+<div class="viewcode-block" id="normalize_datetime">
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.normalize.normalize_datetime">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">normalize_datetime</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">datetime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalize a combined date+time value per UNF v6 spec §Ia.5c.</span>
+
+<span class="sd">    Format: ``YYYY-MM-DDThh:mm:ss[.fffff][Z]``</span>
+
+<span class="sd">    If the datetime is timezone-aware, it is converted to UTC and a</span>
+<span class="sd">    ``Z`` suffix is appended. Partial dates are prohibited in combined</span>
+<span class="sd">    date and time values.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    value : datetime.datetime</span>
+<span class="sd">        The datetime value to normalize.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bytes</span>
+<span class="sd">        The normalized byte representation including the terminator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">tzinfo</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Convert to UTC</span>
+        <span class="n">utc_dt</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">UTC</span><span class="p">)</span>
+        <span class="n">date_part</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">utc_dt</span><span class="o">.</span><span class="n">year</span><span class="si">:</span><span class="s2">04d</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">utc_dt</span><span class="o">.</span><span class="n">month</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">utc_dt</span><span class="o">.</span><span class="n">day</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">time_part</span> <span class="o">=</span> <span class="n">_format_time_component</span><span class="p">(</span><span class="n">utc_dt</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot;Z&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">date_part</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">value</span><span class="o">.</span><span class="n">year</span><span class="si">:</span><span class="s2">04d</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">value</span><span class="o">.</span><span class="n">month</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">value</span><span class="o">.</span><span class="n">day</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">time_part</span> <span class="o">=</span> <span class="n">_format_time_component</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
+
+    <span class="n">formatted</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">date_part</span><span class="si">}</span><span class="s2">T</span><span class="si">{</span><span class="n">time_part</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">return</span> <span class="n">formatted</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">VALUE_TERMINATOR</span></div>
+
+
+
+<div class="viewcode-block" id="normalize_duration">
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.normalize.normalize_duration">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">normalize_duration</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">timedelta</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalize a duration/interval value per UNF v6 spec §Ia.5d.</span>
+
+<span class="sd">    Durations are represented as the total number of seconds,</span>
+<span class="sd">    normalized as a numeric value. This is a pragmatic interpretation</span>
+<span class="sd">    since the spec dropped formal duration support but Polars Duration</span>
+<span class="sd">    columns still need handling.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    value : datetime.timedelta</span>
+<span class="sd">        The duration value to normalize.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bytes</span>
+<span class="sd">        The normalized byte representation including the terminator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">total_seconds</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">normalize_numeric</span><span class="p">(</span><span class="n">total_seconds</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="normalize_missing">
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.normalize.normalize_missing">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">normalize_missing</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the missing value representation per UNF v6 spec §Ia.6.</span>
+
+<span class="sd">    Missing values are encoded as 3 null bytes with NO terminator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">MISSING_VALUE</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Data Artifex.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

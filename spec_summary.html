@@ -1,0 +1,232 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UNF v6 Specification Summary &mdash; dartfx-unf 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API Reference" href="api/modules.html" />
+    <link rel="prev" title="Usage Guide" href="usage.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html">
+            
+              <img src="_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage Guide</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">UNF v6 Specification Summary</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#high-level-process">High-Level Process</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#normalization-rules">Normalization Rules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#numeric-values-ia-1">Numeric Values (§Ia.1)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#character-strings-ia-2">Character Strings (§Ia.2)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#boolean-values-ia-3">Boolean Values (§Ia.3)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bit-fields-ia-4">Bit Fields (§Ia.4)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#date-and-time-ia-5">Date and Time (§Ia.5)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#missing-values-ia-6">Missing Values (§Ia.6)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#hierarchical-composition">Hierarchical Composition</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#data-frames-iia">Data Frames (§IIa)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#multi-file-datasets-iib">Multi-file Datasets (§IIb)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#optional-parameters">Optional Parameters</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/modules.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">dartfx-unf</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">UNF v6 Specification Summary</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/spec_summary.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="unf-v6-specification-summary">
+<h1>UNF v6 Specification Summary<a class="headerlink" href="#unf-v6-specification-summary" title="Link to this heading"></a></h1>
+<p>The <strong>Universal Number Fingerprint (UNF)</strong> is a system-independent digital signature for data objects. This page summarizes the normalization rules for version 6 of the specification.</p>
+<section id="high-level-process">
+<h2>High-Level Process<a class="headerlink" href="#high-level-process" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p><strong>Normalize</strong>: Each value in a data vector is converted to a canonical string representation.</p></li>
+<li><p><strong>Terminate</strong>: Each non-missing normalized string is terminated with a newline (<code class="docutils literal notranslate"><span class="pre">\n</span></code>) and a null byte (<code class="docutils literal notranslate"><span class="pre">\000</span></code>).</p></li>
+<li><p><strong>Hash</strong>: All terminated strings are concatenated, and a SHA-256 hash is computed.</p></li>
+<li><p><strong>Truncate</strong>: The resulting hash is truncated to $H$ bits (default 128).</p></li>
+<li><p><strong>Encode</strong>: The bits are Base64 encoded and prepended with a versioned header (e.g., <code class="docutils literal notranslate"><span class="pre">UNF:6:</span></code>).</p></li>
+</ol>
+</section>
+<section id="normalization-rules">
+<h2>Normalization Rules<a class="headerlink" href="#normalization-rules" title="Link to this heading"></a></h2>
+<section id="numeric-values-ia-1">
+<h3>Numeric Values (§Ia.1)<a class="headerlink" href="#numeric-values-ia-1" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Rounding</strong>: Values are rounded to $N$ significant digits (default 7) using IEEE 754 “round towards nearest, ties to even”.</p></li>
+<li><p><strong>Format</strong>: <code class="docutils literal notranslate"><span class="pre">[sign][digit].[digits]e[sign][exponent]</span></code></p></li>
+<li><p><strong>Special Cases</strong>:</p>
+<ul>
+<li><p>Positive Zero: <code class="docutils literal notranslate"><span class="pre">+0.e+</span></code></p></li>
+<li><p>Negative Zero: <code class="docutils literal notranslate"><span class="pre">-0.e+</span></code></p></li>
+<li><p>Infinity: <code class="docutils literal notranslate"><span class="pre">+inf</span></code>, <code class="docutils literal notranslate"><span class="pre">-inf</span></code></p></li>
+<li><p>Not-a-Number: <code class="docutils literal notranslate"><span class="pre">+nan</span></code></p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="character-strings-ia-2">
+<h3>Character Strings (§Ia.2)<a class="headerlink" href="#character-strings-ia-2" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Encoding</strong>: UTF-8.</p></li>
+<li><p><strong>Truncation</strong>: Truncated to $X$ characters (default 128).</p></li>
+<li><p><strong>Terminator</strong>: Appended after truncation.</p></li>
+</ul>
+</section>
+<section id="boolean-values-ia-3">
+<h3>Boolean Values (§Ia.3)<a class="headerlink" href="#boolean-values-ia-3" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Treated as numeric <code class="docutils literal notranslate"><span class="pre">0</span></code> (False) or <code class="docutils literal notranslate"><span class="pre">1</span></code> (True).</p></li>
+</ul>
+</section>
+<section id="bit-fields-ia-4">
+<h3>Bit Fields (§Ia.4)<a class="headerlink" href="#bit-fields-ia-4" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Converted to big-endian form.</p></li>
+<li><p>Leading zero bits are truncated.</p></li>
+<li><p>Aligned to a byte boundary.</p></li>
+<li><p>Base64 encoded.</p></li>
+</ul>
+</section>
+<section id="date-and-time-ia-5">
+<h3>Date and Time (§Ia.5)<a class="headerlink" href="#date-and-time-ia-5" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Dates</strong>: <code class="docutils literal notranslate"><span class="pre">YYYY-MM-DD</span></code> (partial dates like <code class="docutils literal notranslate"><span class="pre">YYYY</span></code> or <code class="docutils literal notranslate"><span class="pre">YYYY-MM</span></code> allowed).</p></li>
+<li><p><strong>Time</strong>: <code class="docutils literal notranslate"><span class="pre">hh:mm:ss.fffff</span></code>. Must be UTC (appended with <code class="docutils literal notranslate"><span class="pre">Z</span></code>). Fractional seconds <code class="docutils literal notranslate"><span class="pre">fffff</span></code> have no trailing zeros.</p></li>
+<li><p><strong>Datetime</strong>: Concatenation of Date + <code class="docutils literal notranslate"><span class="pre">T</span></code> + Time.</p></li>
+</ul>
+</section>
+<section id="missing-values-ia-6">
+<h3>Missing Values (§Ia.6)<a class="headerlink" href="#missing-values-ia-6" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Encoded as exactly three null bytes: <code class="docutils literal notranslate"><span class="pre">\000\000\000</span></code>.</p></li>
+<li><p><strong>Crucial</strong>: Missing values are <strong>not</strong> terminated with a newline or null byte.</p></li>
+</ul>
+</section>
+</section>
+<section id="hierarchical-composition">
+<h2>Hierarchical Composition<a class="headerlink" href="#hierarchical-composition" title="Link to this heading"></a></h2>
+<section id="data-frames-iia">
+<h3>Data Frames (§IIa)<a class="headerlink" href="#data-frames-iia" title="Link to this heading"></a></h3>
+<p>To calculate the UNF of a dataset with multiple columns:</p>
+<ol class="arabic simple">
+<li><p>Calculate the UNF of each individual column.</p></li>
+<li><p>Sort the printable UNF strings in POSIX locale order.</p></li>
+<li><p>Treat the sorted UNF strings as a vector of character strings and calculate a new UNF.</p></li>
+</ol>
+</section>
+<section id="multi-file-datasets-iib">
+<h3>Multi-file Datasets (§IIb)<a class="headerlink" href="#multi-file-datasets-iib" title="Link to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p>Calculate the UNF of each file.</p></li>
+<li><p>Combine them using the same sorting and hashing logic used for Data Frames.</p></li>
+</ol>
+</section>
+</section>
+<section id="optional-parameters">
+<h2>Optional Parameters<a class="headerlink" href="#optional-parameters" title="Link to this heading"></a></h2>
+<p>Non-default parameters are recorded in the UNF header:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">N</span></code>: Significant digits (e.g., <code class="docutils literal notranslate"><span class="pre">N9</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">X</span></code>: String truncation length (e.g., <code class="docutils literal notranslate"><span class="pre">X256</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">H</span></code>: Hash truncation bits (e.g., <code class="docutils literal notranslate"><span class="pre">H256</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">R1</span></code>: Use truncation instead of rounding for numbers.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="usage.html" class="btn btn-neutral float-left" title="Usage Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="api/modules.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Data Artifex.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

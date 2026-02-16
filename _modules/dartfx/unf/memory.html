@@ -1,0 +1,256 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>dartfx.unf.memory &mdash; dartfx-unf 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html">
+            
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../spec_summary.html">UNF v6 Specification Summary</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">dartfx-unf</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">dartfx.unf.memory</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for dartfx.unf.memory</h1><div class="highlight"><pre>
+<span></span><span class="c1"># SPDX-FileCopyrightText: 2024-present kulnor &lt;pascal@codata.org&gt;</span>
+<span class="c1">#</span>
+<span class="c1"># SPDX-License-Identifier: MIT</span>
+
+<span class="sd">&quot;&quot;&quot;System memory utilities for streaming decision-making.</span>
+
+<span class="sd">Provides platform-aware memory detection and a heuristic to decide</span>
+<span class="sd">whether a file should be processed in-memory or via streaming.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="c1"># Default memory budget when detection fails (4 GB).</span>
+<span class="n">_FALLBACK_MEMORY_BYTES</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="mi">1024</span><span class="o">**</span><span class="mi">3</span>
+
+<span class="c1"># In-memory DataFrames typically require 2–5× the raw file size.</span>
+<span class="c1"># We compare file size against this fraction of available memory.</span>
+<span class="n">_DEFAULT_MEMORY_FRACTION</span> <span class="o">=</span> <span class="mf">0.25</span>
+
+
+<div class="viewcode-block" id="get_available_memory">
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.memory.get_available_memory">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_available_memory</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Estimate available system memory in bytes.</span>
+
+<span class="sd">    Strategy (in order of preference):</span>
+
+<span class="sd">    1. Linux ``/proc/meminfo`` – reads *MemAvailable*, which accounts</span>
+<span class="sd">       for caches and buffers and is the most accurate indicator of</span>
+<span class="sd">       how much memory a new process can use.</span>
+<span class="sd">    2. Windows ``kernel32.GlobalMemoryStatusEx`` – returns *available*</span>
+<span class="sd">       physical memory via the Win32 API (no external dependencies).</span>
+<span class="sd">    3. ``os.sysconf`` – available on macOS and Linux; returns *total*</span>
+<span class="sd">       physical memory (not currently-free memory, but still useful</span>
+<span class="sd">       as an upper bound).</span>
+<span class="sd">    4. Fallback – assume 4 GB.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    int</span>
+<span class="sd">        Estimated available memory in bytes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># --- Linux: /proc/meminfo (best source) ---</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;/proc/meminfo&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;MemAvailable:&quot;</span><span class="p">):</span>
+                    <span class="c1"># Value is in kB</span>
+                    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="mi">1024</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">FileNotFoundError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="c1"># --- Windows: kernel32.GlobalMemoryStatusEx ---</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">ctypes</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">ctypes.wintypes</span>
+
+        <span class="k">class</span><span class="w"> </span><span class="nc">MEMORYSTATUSEX</span><span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>  <span class="c1"># noqa: N801</span>
+            <span class="n">_fields_</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">(</span><span class="s2">&quot;dwLength&quot;</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">wintypes</span><span class="o">.</span><span class="n">DWORD</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;dwMemoryLoad&quot;</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">wintypes</span><span class="o">.</span><span class="n">DWORD</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;ullTotalPhys&quot;</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_ulonglong</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;ullAvailPhys&quot;</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_ulonglong</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;ullTotalPageFile&quot;</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_ulonglong</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;ullAvailPageFile&quot;</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_ulonglong</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;ullTotalVirtual&quot;</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_ulonglong</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;ullAvailVirtual&quot;</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_ulonglong</span><span class="p">),</span>
+                <span class="p">(</span><span class="s2">&quot;ullAvailExtendedVirtual&quot;</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_ulonglong</span><span class="p">),</span>
+            <span class="p">]</span>
+
+        <span class="n">stat</span> <span class="o">=</span> <span class="n">MEMORYSTATUSEX</span><span class="p">()</span>
+        <span class="n">stat</span><span class="o">.</span><span class="n">dwLength</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">sizeof</span><span class="p">(</span><span class="n">MEMORYSTATUSEX</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">windll</span><span class="o">.</span><span class="n">kernel32</span><span class="o">.</span><span class="n">GlobalMemoryStatusEx</span><span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">byref</span><span class="p">(</span><span class="n">stat</span><span class="p">)):</span>  <span class="c1"># type: ignore[attr-defined]</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">stat</span><span class="o">.</span><span class="n">ullAvailPhys</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">,</span> <span class="ne">ImportError</span><span class="p">):</span>
+        <span class="c1"># AttributeError: ctypes.windll doesn&#39;t exist on non-Windows</span>
+        <span class="k">pass</span>
+
+    <span class="c1"># --- macOS / Linux: os.sysconf (total physical memory) ---</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">pages</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">sysconf</span><span class="p">(</span><span class="s2">&quot;SC_PHYS_PAGES&quot;</span><span class="p">)</span>
+        <span class="n">page_size</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">sysconf</span><span class="p">(</span><span class="s2">&quot;SC_PAGE_SIZE&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pages</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">page_size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">pages</span> <span class="o">*</span> <span class="n">page_size</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+        <span class="s2">&quot;Could not detect system memory; defaulting to </span><span class="si">%d</span><span class="s2"> MB&quot;</span><span class="p">,</span>
+        <span class="n">_FALLBACK_MEMORY_BYTES</span> <span class="o">//</span> <span class="p">(</span><span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">_FALLBACK_MEMORY_BYTES</span></div>
+
+
+
+<div class="viewcode-block" id="should_stream">
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.memory.should_stream">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">should_stream</span><span class="p">(</span>
+    <span class="n">file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">memory_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">_DEFAULT_MEMORY_FRACTION</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Decide whether a file should be processed via streaming.</span>
+
+<span class="sd">    The heuristic compares the on-disk file size against a configurable</span>
+<span class="sd">    fraction of available memory.  Because in-memory representations</span>
+<span class="sd">    (especially for CSV) can be several times larger than the raw file,</span>
+<span class="sd">    the default fraction is conservative (25 %).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    file_path : Path</span>
+<span class="sd">        Path to the data file.</span>
+<span class="sd">    memory_fraction : float</span>
+<span class="sd">        Fraction of available memory above which streaming is triggered.</span>
+<span class="sd">        Default is 0.25 (25 %).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bool</span>
+<span class="sd">        ``True`` if streaming is recommended.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">file_size</span> <span class="o">=</span> <span class="n">file_path</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span>
+    <span class="n">available</span> <span class="o">=</span> <span class="n">get_available_memory</span><span class="p">()</span>
+    <span class="n">threshold</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">available</span> <span class="o">*</span> <span class="n">memory_fraction</span><span class="p">)</span>
+    <span class="n">use_streaming</span> <span class="o">=</span> <span class="n">file_size</span> <span class="o">&gt;</span> <span class="n">threshold</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="s2">&quot;File </span><span class="si">%s</span><span class="s2">: </span><span class="si">%.1f</span><span class="s2"> MB | Available memory: </span><span class="si">%.1f</span><span class="s2"> MB | &quot;</span>
+        <span class="s2">&quot;Threshold (</span><span class="si">%.0f%%</span><span class="s2">): </span><span class="si">%.1f</span><span class="s2"> MB | Mode: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="n">file_path</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">file_size</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">),</span>
+        <span class="n">available</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">),</span>
+        <span class="n">memory_fraction</span> <span class="o">*</span> <span class="mi">100</span><span class="p">,</span>
+        <span class="n">threshold</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">),</span>
+        <span class="s2">&quot;streaming&quot;</span> <span class="k">if</span> <span class="n">use_streaming</span> <span class="k">else</span> <span class="s2">&quot;in-memory&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">use_streaming</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Data Artifex.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

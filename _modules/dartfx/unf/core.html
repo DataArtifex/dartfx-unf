@@ -103,12 +103,12 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Sequence</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">timedelta</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">io</span><span class="w"> </span><span class="kn">import</span> <span class="n">BytesIO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">BinaryIO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">BinaryIO</span><span class="p">,</span> <span class="n">cast</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
 
@@ -210,6 +210,7 @@
     <span class="c1"># Note: MISSING_VALUE (b&quot;\x00\x00\x00&quot;) has no terminator.</span>
     <span class="n">null_mask</span> <span class="o">=</span> <span class="n">series</span><span class="o">.</span><span class="n">is_null</span><span class="p">()</span>
 
+    <span class="n">expr</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">Expr</span> <span class="o">|</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span>
     <span class="k">if</span> <span class="n">dtype</span> <span class="o">==</span> <span class="n">pl</span><span class="o">.</span><span class="n">Boolean</span><span class="p">:</span>
         <span class="c1"># Vectorized Boolean (UNF v6 §Ia.3 -&gt; §Ia.1)</span>
         <span class="n">expr</span> <span class="o">=</span> <span class="p">(</span>
@@ -292,7 +293,7 @@
 
 
 <div class="viewcode-block" id="unf_column">
-<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.unf_column">[docs]</a>
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.core.unf_column">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">unf_column</span><span class="p">(</span>
     <span class="n">series</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
     <span class="n">params</span><span class="p">:</span> <span class="n">UNFParameters</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -369,7 +370,7 @@
 
 
 <div class="viewcode-block" id="unf_dataframe">
-<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.unf_dataframe">[docs]</a>
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.core.unf_dataframe">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">unf_dataframe</span><span class="p">(</span>
     <span class="n">df</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -510,11 +511,11 @@
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Yield Parquet row batches via ``pyarrow.parquet``.&quot;&quot;&quot;</span>
-    <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.parquet</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pq</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.parquet</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pq</span>  <span class="c1"># type: ignore</span>
 
-    <span class="n">pf</span> <span class="o">=</span> <span class="n">pq</span><span class="o">.</span><span class="n">ParquetFile</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">pf</span> <span class="o">=</span> <span class="n">pq</span><span class="o">.</span><span class="n">ParquetFile</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
     <span class="k">for</span> <span class="n">record_batch</span> <span class="ow">in</span> <span class="n">pf</span><span class="o">.</span><span class="n">iter_batches</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">):</span>
-        <span class="k">yield</span> <span class="n">pl</span><span class="o">.</span><span class="n">from_arrow</span><span class="p">(</span><span class="n">record_batch</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">cast</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">from_arrow</span><span class="p">(</span><span class="n">record_batch</span><span class="p">))</span>
 
 
 <span class="c1"># ---------------------------------------------------------------------------</span>
@@ -523,7 +524,7 @@
 
 
 <div class="viewcode-block" id="unf_file">
-<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.unf_file">[docs]</a>
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.core.unf_file">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">unf_file</span><span class="p">(</span>
     <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -682,9 +683,9 @@
 
 
 <div class="viewcode-block" id="unf_dataset">
-<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.unf_dataset">[docs]</a>
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.core.unf_dataset">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">unf_dataset</span><span class="p">(</span>
-    <span class="n">paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">],</span>
+    <span class="n">paths</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">params</span><span class="p">:</span> <span class="n">UNFParameters</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -754,7 +755,7 @@
 
 
 <div class="viewcode-block" id="unf_from_bytes">
-<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.unf_from_bytes">[docs]</a>
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.core.unf_from_bytes">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">unf_from_bytes</span><span class="p">(</span>
     <span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span>
     <span class="nb">format</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>  <span class="c1"># noqa: A002</span>
@@ -785,7 +786,7 @@
 
 
 <div class="viewcode-block" id="unf_from_stream">
-<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.unf_from_stream">[docs]</a>
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.core.unf_from_stream">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">unf_from_stream</span><span class="p">(</span>
     <span class="n">stream</span><span class="p">:</span> <span class="n">BinaryIO</span><span class="p">,</span>
     <span class="nb">format</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>  <span class="c1"># noqa: A002</span>

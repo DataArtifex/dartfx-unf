@@ -152,6 +152,7 @@
         <span class="c1"># Quantize towards zero</span>
         <span class="n">d</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>
         <span class="n">sign</span><span class="p">,</span> <span class="n">coefficient</span><span class="p">,</span> <span class="n">exponent</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">as_tuple</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exponent</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
         <span class="n">coeff_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">coefficient</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">coeff_str</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">digits</span><span class="p">:</span>
             <span class="c1"># Calculate the new exponent for the truncated number</span>
@@ -174,6 +175,7 @@
         <span class="c1"># Default: IEEE 754 &quot;round towards nearest, ties to even&quot;</span>
         <span class="n">d</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>
         <span class="n">sign_d</span><span class="p">,</span> <span class="n">coefficient</span><span class="p">,</span> <span class="n">exponent</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">as_tuple</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exponent</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
         <span class="n">num_digits</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">coefficient</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">num_digits</span> <span class="o">&gt;</span> <span class="n">digits</span><span class="p">:</span>
             <span class="c1"># Round to N significant digits</span>
@@ -204,6 +206,7 @@
 <span class="sd">        0.00073 -&gt; +7.3e-4</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">sign_d</span><span class="p">,</span> <span class="n">coefficient</span><span class="p">,</span> <span class="n">exponent</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span><span class="o">.</span><span class="n">as_tuple</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exponent</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">coefficient</span><span class="p">:</span>
         <span class="c1"># Shouldn&#39;t reach here (zero handled upstream), but be safe.</span>

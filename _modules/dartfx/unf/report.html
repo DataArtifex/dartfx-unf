@@ -96,7 +96,7 @@
 
 
 <div class="viewcode-block" id="ColumnResult">
-<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.ColumnResult">[docs]</a>
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.report.ColumnResult">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ColumnResult</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;UNF result for a single column (vector).&quot;&quot;&quot;</span>
@@ -108,7 +108,7 @@
 
 
 <div class="viewcode-block" id="FileResult">
-<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.FileResult">[docs]</a>
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.report.FileResult">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">FileResult</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;UNF result for a single file (data frame).&quot;&quot;&quot;</span>
@@ -121,7 +121,7 @@
 
 
 <div class="viewcode-block" id="DatasetResult">
-<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.DatasetResult">[docs]</a>
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.report.DatasetResult">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">DatasetResult</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;UNF result for a dataset (multiple files).&quot;&quot;&quot;</span>
@@ -134,7 +134,7 @@
 
 
 <div class="viewcode-block" id="UNFReport">
-<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.UNFReport">[docs]</a>
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.report.UNFReport">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">UNFReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A structured report containing the final results of a UNF calculation.</span>
@@ -180,7 +180,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">UTC</span><span class="p">)</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
 
 <div class="viewcode-block" id="UNFReport.to_dict">
-<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.UNFReport.to_dict">[docs]</a>
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.report.UNFReport.to_dict">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">validate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialise the report to a plain dict matching the JSON schema.</span>
 
@@ -228,7 +228,7 @@
 
 
 <div class="viewcode-block" id="UNFReport.to_json">
-<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.UNFReport.to_json">[docs]</a>
+<a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.report.UNFReport.to_json">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indent</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">validate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialise the report to a JSON string.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">validate</span><span class="o">=</span><span class="n">validate</span><span class="p">),</span> <span class="n">indent</span><span class="o">=</span><span class="n">indent</span><span class="p">)</span></div>

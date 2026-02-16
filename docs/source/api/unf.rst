@@ -20,6 +20,7 @@ The `dartfx.unf.core` module contains the main logic for file, dataset, and vect
    :members:
    :undoc-members:
    :show-inheritance:
+   :exclude-members: UNFParameters, UNFReport, finalize_hash, combine_unfs, should_stream, normalize_bit_field, normalize_boolean, normalize_date, normalize_datetime, normalize_duration, normalize_missing, normalize_numeric, normalize_string, normalize_time, MISSING_VALUE, VALUE_TERMINATOR
 
 Configuration & Parameters
 --------------------------

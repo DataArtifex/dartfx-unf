@@ -34,8 +34,8 @@ Input File (.csv / .parquet)
     │  ├─ per-column SHA-256 hashers           │
     │  ├─ for each batch:                      │
     │  │   └─ for each column:                 │
-    │  │       ├─ normalize values              │   normalize.py (§Ia)
-    │  │       └─ hasher.update(bytes)          │   incremental SHA-256
+    │  │       ├─ normalize values             │   normalize.py (§Ia)
+    │  │       └─ hasher.update(bytes)         │   incremental SHA-256
     │  ├─ finalize each column hash → UNF      │   hasher.finalize_hash (§Ib)
     │  └─ combine column UNFs                  │   hasher.combine_unfs (§IIa)
     └──────────────────────────────────────────┘

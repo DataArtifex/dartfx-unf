@@ -1,7 +1,6 @@
 # dartfx-unf
 
-[![PyPI - Version](https://img.shields.io/pypi/v/dartfx-unf.svg)](https://pypi.org/project/dartfx-unf)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dartfx-unf.svg)](https://pypi.org/project/dartfx-unf)
+[![Package Status](https://img.shields.io/badge/PyPI-not%20published-lightgrey)](https://github.com/DataArtifex/dartfx-unf)
 [![CI](https://github.com/DataArtifex/dartfx-unf/actions/workflows/test.yml/badge.svg)](https://github.com/DataArtifex/dartfx-unf/actions/workflows/test.yml)
 [![License](https://img.shields.io/github/license/DataArtifex/dartfx-unf.svg)](https://github.com/DataArtifex/dartfx-unf/blob/main/LICENSE.txt)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
@@ -36,9 +35,18 @@ Built on top of the **Polars** engine, it provides native support for massive da
 
 We recommend using [uv](https://github.com/astral-sh/uv) for fast environment management.
 
+This package is not yet published on PyPI. Install from source using the steps below.
+
 ### For Users
 ```bash
-pip install dartfx-unf
+git clone https://github.com/DataArtifex/dartfx-unf.git
+cd dartfx-unf
+
+# Option 1: pip (editable install)
+pip install -e .
+
+# Option 2: uv (editable install)
+uv pip install -e .
 ```
 
 ### For Developers

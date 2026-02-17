@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # Map JSON Schema types to Polars data types
-JSON_TO_POLARS_TYPE_MAP: dict[str, pl.DataType] = {
+JSON_TO_POLARS_TYPE_MAP: dict[str, type[pl.DataType]] = {
     "null": pl.Null,
     "boolean": pl.Boolean,
     "integer": pl.Int64,

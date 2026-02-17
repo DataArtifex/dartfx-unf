@@ -768,7 +768,7 @@ def _unf_file_memory(
     params: UNFParameters,
     label: str | None,
     infer_schema_length: int = 10_000,
-    user_schema: dict[str, str] | None = None,
+    user_schema: dict[str, str] | dict[str, dict] | None = None,
 ) -> UNFReport:
     """Process a file entirely in memory with parallel column hashing."""
     if suffix == ".parquet":
@@ -795,7 +795,7 @@ def _unf_file_streaming(
     label: str | None,
     batch_size: int,
     infer_schema_length: int = 10_000,
-    user_schema: dict[str, str] | None = None,
+    user_schema: dict[str, str] | dict[str, dict] | None = None,
 ) -> UNFReport:
     """Process a file in streaming mode using incremental SHA-256 hashers.
 

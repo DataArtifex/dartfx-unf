@@ -22,7 +22,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="UNF v6 Specification Summary" href="spec_summary.html" />
+    <link rel="next" title="Schema Specification Reference" href="schema.html" />
     <link rel="prev" title="dartfx-unf: High-Performance UNF v6" href="index.html" /> 
 </head>
 
@@ -54,6 +54,12 @@
 <li class="toctree-l3"><a class="reference internal" href="#dataset-usage">Dataset Usage</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#formatting-options">Formatting Options</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#configuration-flags">Configuration Flags</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#schema-specification">Schema Specification</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#json-schema-file">1. JSON Schema File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#inline-json-schema">2. Inline JSON Schema</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#simple-dictionary-format-cli-only">3. Simple Dictionary Format (CLI only)</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#performance-tuning">Performance Tuning</a></li>
 </ul>
 </li>
@@ -67,6 +73,7 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="schema.html">Schema Specification Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="spec_summary.html">UNF v6 Specification Summary</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
@@ -139,6 +146,62 @@
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">--truncate</span></code></strong>: Use truncation (R1) instead of IEEE 754 rounding.</p></li>
 </ul>
 </section>
+<section id="schema-specification">
+<h3>Schema Specification<a class="headerlink" href="#schema-specification" title="Link to this heading"></a></h3>
+<p>By default, <code class="docutils literal notranslate"><span class="pre">dartfx-unf</span></code> automatically infers column data types using Polars’ type inference. For CSV files, you can override this behavior with a JSON Schema to ensure consistent type handling across systems.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">--schema</span></code> option accepts three formats:</p>
+<section id="json-schema-file">
+<h4>1. JSON Schema File<a class="headerlink" href="#json-schema-file" title="Link to this heading"></a></h4>
+<p>Create a file named <code class="docutils literal notranslate"><span class="pre">schema.json</span></code>:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;properties&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;integer&quot;</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;salary&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;number&quot;</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;start_date&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;date&quot;</span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Then use it:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>dartfx-unf<span class="w"> </span>--schema<span class="w"> </span>schema.json<span class="w"> </span>data.csv
+</pre></div>
+</div>
+</section>
+<section id="inline-json-schema">
+<h4>2. Inline JSON Schema<a class="headerlink" href="#inline-json-schema" title="Link to this heading"></a></h4>
+<p>Pass the schema directly on the command line:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>dartfx-unf<span class="w"> </span>--schema<span class="w"> </span><span class="s1">&#39;{&quot;properties&quot;: {&quot;id&quot;: {&quot;type&quot;: &quot;integer&quot;}, &quot;name&quot;: {&quot;type&quot;: &quot;string&quot;}}}&#39;</span><span class="w"> </span>data.csv
+</pre></div>
+</div>
+</section>
+<section id="simple-dictionary-format-cli-only">
+<h4>3. Simple Dictionary Format (CLI only)<a class="headerlink" href="#simple-dictionary-format-cli-only" title="Link to this heading"></a></h4>
+<p>For basic use cases, the inline format can be simplified to just <code class="docutils literal notranslate"><span class="pre">column:</span> <span class="pre">type</span></code> pairs if it parses properly.</p>
+<p><strong>Supported JSON Schema Types:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;integer&quot;</span></code> → Int64</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;number&quot;</span></code> → Float64</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;string&quot;</span></code> → Utf8</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;boolean&quot;</span></code> → Boolean</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;date&quot;</span></code> → Date</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;time&quot;</span></code> → Time</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;date-time&quot;</span></code> → Datetime</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;null&quot;</span></code> → Null</p></li>
+</ul>
+<p><strong>Error Handling:</strong></p>
+<ul class="simple">
+<li><p><strong>String columns</strong> can be overridden to any type with a warning</p></li>
+<li><p><strong>Other type mismatches</strong> raise an error (e.g., trying to cast an inferred integer to date)</p></li>
+<li><p><strong>Missing columns</strong> in data are logged as warnings but don’t fail</p></li>
+</ul>
+<p><strong>Example: Type Override</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># CSV infers &quot;01234&quot; as string, but you want it as integer</span>
+uv<span class="w"> </span>run<span class="w"> </span>dartfx-unf<span class="w"> </span>--schema<span class="w"> </span><span class="s1">&#39;{&quot;properties&quot;: {&quot;id&quot;: {&quot;type&quot;: &quot;integer&quot;}}}&#39;</span><span class="w"> </span>data.csv
+</pre></div>
+</div>
+</section>
+</section>
 <section id="performance-tuning">
 <h3>Performance Tuning<a class="headerlink" href="#performance-tuning" title="Link to this heading"></a></h3>
 <ul class="simple">
@@ -169,6 +232,17 @@
 <span class="c1"># Control CSV schema inference</span>
 <span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span><span class="s2">&quot;data.csv&quot;</span><span class="p">,</span> <span class="n">infer_schema_length</span><span class="o">=</span><span class="mi">50_000</span><span class="p">)</span>  <span class="c1"># scan 50k rows</span>
 <span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span><span class="s2">&quot;data.csv&quot;</span><span class="p">,</span> <span class="n">infer_schema_length</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>     <span class="c1"># scan all rows</span>
+
+<span class="c1"># Use a JSON Schema to override type inference</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span><span class="s2">&quot;data.csv&quot;</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="s2">&quot;schema.json&quot;</span><span class="p">)</span>  <span class="c1"># file path</span>
+
+<span class="c1"># Or provide inline JSON schema</span>
+<span class="n">schema_json</span> <span class="o">=</span> <span class="s1">&#39;{&quot;properties&quot;: {&quot;id&quot;: {&quot;type&quot;: &quot;integer&quot;}, &quot;name&quot;: {&quot;type&quot;: &quot;string&quot;}}}&#39;</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span><span class="s2">&quot;data.csv&quot;</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema_json</span><span class="p">)</span>
+
+<span class="c1"># Or use a Python dictionary (shorthand)</span>
+<span class="n">schema_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;integer&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span> <span class="s2">&quot;salary&quot;</span><span class="p">:</span> <span class="s2">&quot;number&quot;</span><span class="p">}</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span><span class="s2">&quot;data.csv&quot;</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema_dict</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -209,6 +283,10 @@
 <span class="c1"># Access individual file UNFs</span>
 <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">report</span><span class="o">.</span><span class="n">result</span><span class="o">.</span><span class="n">entries</span><span class="p">:</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">label</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">unf</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="c1"># Apply a common schema to all files</span>
+<span class="n">schema</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;integer&quot;</span><span class="p">,</span> <span class="s2">&quot;date&quot;</span><span class="p">:</span> <span class="s2">&quot;date&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;number&quot;</span><span class="p">}</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">unf_dataset</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -252,7 +330,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="index.html" class="btn btn-neutral float-left" title="dartfx-unf: High-Performance UNF v6" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="spec_summary.html" class="btn btn-neutral float-right" title="UNF v6 Specification Summary" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="schema.html" class="btn btn-neutral float-right" title="Schema Specification Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

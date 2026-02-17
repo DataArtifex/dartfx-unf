@@ -24,6 +24,7 @@ Key Features
    :caption: Getting Started:
 
    usage
+   schema
    spec_summary
 
 .. toctree::

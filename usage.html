@@ -58,6 +58,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#json-schema-file">1. JSON Schema File</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#inline-json-schema">2. Inline JSON Schema</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#simple-dictionary-format-cli-only">3. Simple Dictionary Format (CLI only)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#date-datetime-with-custom-formats">Date/DateTime with Custom Formats</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#performance-tuning">Performance Tuning</a></li>
@@ -149,6 +150,7 @@
 <section id="schema-specification">
 <h3>Schema Specification<a class="headerlink" href="#schema-specification" title="Link to this heading"></a></h3>
 <p>By default, <code class="docutils literal notranslate"><span class="pre">dartfx-unf</span></code> automatically infers column data types using Polars’ type inference. For CSV files, you can override this behavior with a JSON Schema to ensure consistent type handling across systems.</p>
+<p><strong>See the <a class="reference internal" href="schema.html"><span class="std std-doc">Schema Specification Reference</span></a> for comprehensive documentation</strong>, including advanced features like custom date/datetime format support.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">--schema</span></code> option accepts three formats:</p>
 <section id="json-schema-file">
 <h4>1. JSON Schema File<a class="headerlink" href="#json-schema-file" title="Link to this heading"></a></h4>
@@ -184,16 +186,40 @@
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;number&quot;</span></code> → Float64</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;string&quot;</span></code> → Utf8</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;boolean&quot;</span></code> → Boolean</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">&quot;date&quot;</span></code> → Date</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;date&quot;</span></code> → Date (supports custom formats via <code class="docutils literal notranslate"><span class="pre">format</span></code> property)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;time&quot;</span></code> → Time</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">&quot;date-time&quot;</span></code> → Datetime</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;date-time&quot;</span></code> → Datetime (supports custom formats via <code class="docutils literal notranslate"><span class="pre">format</span></code> property)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;null&quot;</span></code> → Null</p></li>
 </ul>
+</section>
+<section id="date-datetime-with-custom-formats">
+<h4>Date/DateTime with Custom Formats<a class="headerlink" href="#date-datetime-with-custom-formats" title="Link to this heading"></a></h4>
+<p>If your CSV contains dates or datetimes in a non-ISO 8601 format, specify the format using the <code class="docutils literal notranslate"><span class="pre">format</span></code> property:</p>
+<p><strong>Single format example:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>dartfx-unf<span class="w"> </span>--schema<span class="w"> </span><span class="s1">&#39;{&quot;properties&quot;: {&quot;hire_date&quot;: {&quot;type&quot;: &quot;date&quot;, &quot;format&quot;: &quot;dd.mm.yyyy&quot;}}}&#39;</span><span class="w"> </span>data.csv
+</pre></div>
+</div>
+<p><strong>Multiple formats (oneOf) example:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>dartfx-unf<span class="w"> </span>--schema<span class="w"> </span><span class="s1">&#39;{</span>
+<span class="s1">  &quot;properties&quot;: {</span>
+<span class="s1">    &quot;date&quot;: {</span>
+<span class="s1">      &quot;type&quot;: &quot;date&quot;,</span>
+<span class="s1">      &quot;oneOf&quot;: [</span>
+<span class="s1">        {&quot;format&quot;: &quot;dd.mm.yyyy&quot;},</span>
+<span class="s1">        {&quot;format&quot;: &quot;yyyy-mm-dd&quot;}</span>
+<span class="s1">      ]</span>
+<span class="s1">    }</span>
+<span class="s1">  }</span>
+<span class="s1">}&#39;</span><span class="w"> </span>data.csv
+</pre></div>
+</div>
+<p>See the <a class="reference internal" href="schema.html"><span class="std std-doc">Schema Specification Reference</span></a> for a complete list of supported format strings and more examples.</p>
 <p><strong>Error Handling:</strong></p>
 <ul class="simple">
 <li><p><strong>String columns</strong> can be overridden to any type with a warning</p></li>
 <li><p><strong>Other type mismatches</strong> raise an error (e.g., trying to cast an inferred integer to date)</p></li>
 <li><p><strong>Missing columns</strong> in data are logged as warnings but don’t fail</p></li>
+<li><p><strong>Format mismatch</strong> raises an error with details (e.g., “Failed to cast column ‘date’ from String to Date”)</p></li>
 </ul>
 <p><strong>Example: Type Override</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># CSV infers &quot;01234&quot; as string, but you want it as integer</span>
@@ -243,6 +269,31 @@ uv<span class="w"> </span>run<span class="w"> </span>dartfx-unf<span class="w"> 
 <span class="c1"># Or use a Python dictionary (shorthand)</span>
 <span class="n">schema_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;integer&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span> <span class="s2">&quot;salary&quot;</span><span class="p">:</span> <span class="s2">&quot;number&quot;</span><span class="p">}</span>
 <span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span><span class="s2">&quot;data.csv&quot;</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema_dict</span><span class="p">)</span>
+
+<span class="c1"># Use custom date formats</span>
+<span class="n">schema_with_dates</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;hire_date&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;date&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="s2">&quot;dd.mm.yyyy&quot;</span>  <span class="c1"># European format</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span><span class="s2">&quot;data.csv&quot;</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema_with_dates</span><span class="p">)</span>
+
+<span class="c1"># Support multiple date formats in same column</span>
+<span class="n">schema_mixed</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;date&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;date&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;oneOf&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">{</span><span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="s2">&quot;dd.mm.yyyy&quot;</span><span class="p">},</span>
+                <span class="p">{</span><span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="s2">&quot;yyyy-mm-dd&quot;</span><span class="p">}</span>
+            <span class="p">]</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span><span class="s2">&quot;data.csv&quot;</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema_mixed</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>

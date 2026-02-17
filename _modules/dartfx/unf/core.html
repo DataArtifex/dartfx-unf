@@ -529,6 +529,98 @@
         <span class="k">yield</span> <span class="n">cast</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">from_arrow</span><span class="p">(</span><span class="n">record_batch</span><span class="p">))</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_parse_string_to_date_with_formats</span><span class="p">(</span>
+    <span class="n">col</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">Expr</span><span class="p">,</span>
+    <span class="n">formats</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">col_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pl</span><span class="o">.</span><span class="n">Expr</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parse string column to date using explicit format strings.</span>
+
+<span class="sd">    Handles mixed formats by trying each format and using coalesce</span>
+<span class="sd">    to fill in values that failed with previous formats.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    col : pl.Expr</span>
+<span class="sd">        String column expression to parse.</span>
+<span class="sd">    formats : list[str]</span>
+<span class="sd">        List of Python strptime format strings to try.</span>
+<span class="sd">    col_name : str</span>
+<span class="sd">        Column name for logging.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pl.Expr</span>
+<span class="sd">        Date expression.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If parsing fails with all provided formats.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">formats</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No date formats provided for column &#39;</span><span class="si">{</span><span class="n">col_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Build a coalescing expression that tries each format</span>
+    <span class="c1"># Start with the first format&#39;s parsed values</span>
+    <span class="n">result_expr</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">Date</span><span class="p">,</span> <span class="n">formats</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># Try subsequent formats for rows that failed with first format</span>
+    <span class="k">for</span> <span class="n">fmt</span> <span class="ow">in</span> <span class="n">formats</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+        <span class="n">result_expr</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span>
+            <span class="n">result_expr</span><span class="p">,</span>
+            <span class="n">col</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">Date</span><span class="p">,</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result_expr</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_parse_string_to_datetime_with_formats</span><span class="p">(</span>
+    <span class="n">col</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">Expr</span><span class="p">,</span>
+    <span class="n">formats</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">col_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pl</span><span class="o">.</span><span class="n">Expr</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parse string column to datetime using explicit format strings.</span>
+
+<span class="sd">    Handles mixed formats by trying each format and using coalesce</span>
+<span class="sd">    to fill in values that failed with previous formats.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    col : pl.Expr</span>
+<span class="sd">        String column expression to parse.</span>
+<span class="sd">    formats : list[str]</span>
+<span class="sd">        List of Python strptime format strings to try.</span>
+<span class="sd">    col_name : str</span>
+<span class="sd">        Column name for logging.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pl.Expr</span>
+<span class="sd">        Datetime expression.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If parsing fails with all provided formats.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">formats</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No datetime formats provided for column &#39;</span><span class="si">{</span><span class="n">col_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Build a coalescing expression that tries each format</span>
+    <span class="c1"># Start with the first format&#39;s parsed values</span>
+    <span class="n">result_expr</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">Datetime</span><span class="p">,</span> <span class="n">formats</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># Try subsequent formats for rows that failed with first format</span>
+    <span class="k">for</span> <span class="n">fmt</span> <span class="ow">in</span> <span class="n">formats</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+        <span class="n">result_expr</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span>
+            <span class="n">result_expr</span><span class="p">,</span>
+            <span class="n">col</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">Datetime</span><span class="p">,</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result_expr</span>
+
+
 <span class="c1"># ---------------------------------------------------------------------------</span>
 <span class="c1"># File (data frame) level – spec §IIa</span>
 <span class="c1"># ---------------------------------------------------------------------------</span>
@@ -536,20 +628,23 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_apply_schema_to_dataframe</span><span class="p">(</span>
     <span class="n">df</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
-    <span class="n">user_schema</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+    <span class="n">user_schema</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply user-provided schema overrides to a DataFrame.</span>
 
 <span class="sd">    Converts column types according to the user-provided schema.</span>
-<span class="sd">    String columns can be cast to any type with a warning.</span>
-<span class="sd">    Other type mismatches raise an error.</span>
+<span class="sd">    Handles both simple type specifications and full schema objects</span>
+<span class="sd">    with format specifications for date/datetime columns.</span>
+<span class="sd">    Attempts to cast all columns to the specified types.</span>
+<span class="sd">    Raises an error if any cast fails.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    df : pl.DataFrame</span>
 <span class="sd">        The DataFrame to apply overrides to.</span>
-<span class="sd">    user_schema : dict[str, str]</span>
-<span class="sd">        Mapping of column names to JSON Schema type names.</span>
+<span class="sd">    user_schema : dict[str, str] or dict[str, dict]</span>
+<span class="sd">        Mapping of column names to JSON Schema type names (dict[str, str])</span>
+<span class="sd">        or full schema objects (dict[str, dict]).</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -559,10 +654,31 @@
 <span class="sd">    Raises</span>
 <span class="sd">    ------</span>
 <span class="sd">    ValueError</span>
-<span class="sd">        If a non-string column type doesn&#39;t match the user-specified type.</span>
+<span class="sd">        If any column cannot be cast to the user-specified type.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">dartfx.unf.schema</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">_extract_primary_type</span><span class="p">,</span>
+        <span class="n">extract_date_formats_from_schema</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Extract type mapping and schema objects</span>
+    <span class="n">column_types</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">column_schemas</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">col_name</span><span class="p">,</span> <span class="n">col_spec</span> <span class="ow">in</span> <span class="n">user_schema</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col_spec</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="c1"># Full schema object with potential format/oneOf properties</span>
+            <span class="n">column_schemas</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">col_spec</span>
+            <span class="k">if</span> <span class="s2">&quot;type&quot;</span> <span class="ow">in</span> <span class="n">col_spec</span><span class="p">:</span>
+                <span class="n">primary_type</span> <span class="o">=</span> <span class="n">_extract_primary_type</span><span class="p">(</span><span class="n">col_spec</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">primary_type</span><span class="p">:</span>
+                    <span class="n">column_types</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">primary_type</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col_spec</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="c1"># Simple type string</span>
+            <span class="n">column_types</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">col_spec</span>
+
     <span class="c1"># Convert user schema to Polars types</span>
-    <span class="n">polars_schema</span> <span class="o">=</span> <span class="n">json_schema_to_polars_schema</span><span class="p">(</span><span class="n">user_schema</span><span class="p">)</span>
+    <span class="n">polars_schema</span> <span class="o">=</span> <span class="n">json_schema_to_polars_schema</span><span class="p">(</span><span class="n">column_types</span><span class="p">)</span>
 
     <span class="c1"># Get current schema</span>
     <span class="n">current_schema</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
@@ -577,26 +693,61 @@
 
         <span class="n">current_type</span> <span class="o">=</span> <span class="n">current_schema</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">current_type</span> <span class="o">!=</span> <span class="n">target_type</span><span class="p">:</span>
-            <span class="c1"># Allow casting from string with warning</span>
-            <span class="k">if</span> <span class="n">current_type</span> <span class="o">==</span> <span class="n">pl</span><span class="o">.</span><span class="n">Utf8</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                    <span class="s2">&quot;Casting column &#39;</span><span class="si">%s</span><span class="s2">&#39; from </span><span class="si">%s</span><span class="s2"> to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
-                    <span class="n">col_name</span><span class="p">,</span>
-                    <span class="n">current_type</span><span class="p">,</span>
-                    <span class="n">target_type</span><span class="p">,</span>
-                <span class="p">)</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">get_column</span><span class="p">(</span><span class="n">col_name</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">target_type</span><span class="p">))</span>
-                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">&quot;Failed to cast column &#39;</span><span class="si">{</span><span class="n">col_name</span><span class="si">}</span><span class="s2">&#39; to </span><span class="si">{</span><span class="n">target_type</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
-                    <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
-            <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Attempt to cast to the user-specified type</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Casting column &#39;</span><span class="si">%s</span><span class="s2">&#39; from </span><span class="si">%s</span><span class="s2"> to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">col_name</span><span class="p">,</span>
+                <span class="n">current_type</span><span class="p">,</span>
+                <span class="n">target_type</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">col</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">col_name</span><span class="p">)</span>
+                <span class="c1"># If source is string and target is not string, replace empty</span>
+                <span class="c1"># strings with null to allow proper casting</span>
+                <span class="k">if</span> <span class="n">current_type</span> <span class="o">==</span> <span class="n">pl</span><span class="o">.</span><span class="n">Utf8</span> <span class="ow">and</span> <span class="n">target_type</span> <span class="o">!=</span> <span class="n">pl</span><span class="o">.</span><span class="n">Utf8</span><span class="p">:</span>
+                    <span class="n">col</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">col</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+
+                <span class="c1"># Get column schema if available for format info</span>
+                <span class="n">col_schema</span> <span class="o">=</span> <span class="n">column_schemas</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">col_name</span><span class="p">)</span>
+
+                <span class="c1"># Special handling for date/datetime with format specifications</span>
+                <span class="k">if</span> <span class="n">target_type</span> <span class="o">==</span> <span class="n">pl</span><span class="o">.</span><span class="n">Date</span> <span class="ow">and</span> <span class="n">current_type</span> <span class="o">==</span> <span class="n">pl</span><span class="o">.</span><span class="n">Utf8</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">col_schema</span><span class="p">:</span>
+                        <span class="n">formats</span> <span class="o">=</span> <span class="n">extract_date_formats_from_schema</span><span class="p">(</span><span class="n">col_schema</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">formats</span><span class="p">:</span>
+                            <span class="n">col</span> <span class="o">=</span> <span class="n">_parse_string_to_date_with_formats</span><span class="p">(</span>
+                                <span class="n">col</span><span class="p">,</span> <span class="n">formats</span><span class="p">,</span> <span class="n">col_name</span>
+                            <span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="c1"># No format specified, try standard ISO</span>
+                            <span class="n">col</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">Date</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># No schema, try standard ISO</span>
+                        <span class="n">col</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">Date</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">target_type</span> <span class="o">==</span> <span class="n">pl</span><span class="o">.</span><span class="n">Datetime</span> <span class="ow">and</span> <span class="n">current_type</span> <span class="o">==</span> <span class="n">pl</span><span class="o">.</span><span class="n">Utf8</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">col_schema</span><span class="p">:</span>
+                        <span class="n">formats</span> <span class="o">=</span> <span class="n">extract_date_formats_from_schema</span><span class="p">(</span><span class="n">col_schema</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">formats</span><span class="p">:</span>
+                            <span class="n">col</span> <span class="o">=</span> <span class="n">_parse_string_to_datetime_with_formats</span><span class="p">(</span>
+                                <span class="n">col</span><span class="p">,</span> <span class="n">formats</span><span class="p">,</span> <span class="n">col_name</span>
+                            <span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="c1"># No format specified, try standard ISO</span>
+                            <span class="n">col</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">Datetime</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%S&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># No schema, try standard ISO</span>
+                        <span class="n">col</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">Datetime</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%S&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Standard cast for other types</span>
+                    <span class="n">col</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">target_type</span><span class="p">)</span>
+
+                <span class="c1"># Always alias to ensure the column name is preserved</span>
+                <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">with_columns</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="n">col_name</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Type mismatch for column &#39;</span><span class="si">{</span><span class="n">col_name</span><span class="si">}</span><span class="s2">&#39;: &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;inferred as </span><span class="si">{</span><span class="n">current_type</span><span class="si">}</span><span class="s2">, user specified </span><span class="si">{</span><span class="n">target_type</span><span class="si">}</span><span class="s2">. &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;Only string columns can be cast to different types.&quot;</span>
-                <span class="p">)</span>
+                    <span class="sa">f</span><span class="s2">&quot;Failed to cast column &#39;</span><span class="si">{</span><span class="n">col_name</span><span class="si">}</span><span class="s2">&#39; from </span><span class="si">{</span><span class="n">current_type</span><span class="si">}</span><span class="s2"> to &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">target_type</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
 
     <span class="k">return</span> <span class="n">df</span>
 
@@ -677,8 +828,10 @@
     <span class="n">suffix</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
     <span class="n">_validate_suffix</span><span class="p">(</span><span class="n">suffix</span><span class="p">)</span>
 
-    <span class="c1"># Parse and validate schema input</span>
-    <span class="n">parsed_schema</span> <span class="o">=</span> <span class="n">parse_schema_input</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span> <span class="k">if</span> <span class="n">schema</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="c1"># Parse and validate schema input with full schema objects (for format support)</span>
+    <span class="n">parsed_schema</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">parse_schema_input</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">return_full_schema</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="n">schema</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="p">)</span>
 
     <span class="c1"># --- decide processing mode ---</span>
     <span class="k">if</span> <span class="n">streaming</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>

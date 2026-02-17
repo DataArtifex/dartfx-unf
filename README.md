@@ -8,13 +8,15 @@
 [![Documentation](https://img.shields.io/badge/docs-v6-blue)](https://dataartifex.github.io/dartfx-unf/)
 [![DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/DataArtifex/dartfx-unf)
 
-**A high-performance Python implementation of the Universal Number Fingerprint (UNF) v6 specification.**
+**A high-performance Python implementation of the [Universal Number Fingerprint (UNF) v6 specification]((https://guides.dataverse.org/en/latest/developers/unf/unf-v6.html)).**
 
 ## Overview
 
 `dartfx-unf` is a blazing-fast, memory-efficient calculator for [UNF Version 6](https://guides.dataverse.org/en/latest/developers/unf/unf-v6.html). Developed by DataArtifex, it ensures that your data remains identifiable and consistent across different software versions, file formats, and operating systems by normalizing and hashing the underlying data values rather than the file itself.
 
 Built on top of the **Polars** engine, it provides native support for massive datasets with a professional-grade CLI and a clean Python API.
+
+
 
 *This package was vibe coded with Claude Opus 4.6 and Gemini 3 Flash.*
 
@@ -90,7 +92,7 @@ print(f"UNF: {report.result.unf}")
 json_report = report.to_json(validate=True)
 ```
 
-For more details, see our [Full Documentation](https://dataartifex.github.io/dartfx-unf/).
+> 📚 **Documentation**: Complete documentation is accessible at [http://dataartifex.org/docs/dartfx-unf](https://dataartifex.org/docs/dartfx-unf)
 
 ---
 

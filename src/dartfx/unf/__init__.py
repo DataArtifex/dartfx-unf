@@ -38,11 +38,21 @@ from dartfx.unf.__about__ import __version__
 from dartfx.unf.core import unf_column, unf_dataset, unf_file
 from dartfx.unf.parameters import UNFParameters
 from dartfx.unf.report import UNFReport
+from dartfx.unf.schema import (
+    json_schema_to_polars_schema,
+    parse_schema_file,
+    parse_schema_inline,
+    parse_schema_input,
+)
 
 __all__ = [
     "__version__",
     "UNFParameters",
     "UNFReport",
+    "json_schema_to_polars_schema",
+    "parse_schema_file",
+    "parse_schema_inline",
+    "parse_schema_input",
     "unf_column",
     "unf_dataset",
     "unf_file",

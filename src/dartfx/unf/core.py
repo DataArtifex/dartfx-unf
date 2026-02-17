@@ -47,6 +47,10 @@ from dartfx.unf.normalize import (
 )
 from dartfx.unf.parameters import UNFParameters
 from dartfx.unf.report import ColumnResult, DatasetResult, FileResult, UNFReport
+from dartfx.unf.schema import (
+    json_schema_to_polars_schema,
+    parse_schema_input,
+)
 
 if TYPE_CHECKING:
     pass
@@ -443,6 +447,78 @@ def _iter_batches_parquet(
 # ---------------------------------------------------------------------------
 
 
+def _apply_schema_to_dataframe(
+    df: pl.DataFrame,
+    user_schema: dict[str, str],
+) -> pl.DataFrame:
+    """Apply user-provided schema overrides to a DataFrame.
+
+    Converts column types according to the user-provided schema.
+    String columns can be cast to any type with a warning.
+    Other type mismatches raise an error.
+
+    Parameters
+    ----------
+    df : pl.DataFrame
+        The DataFrame to apply overrides to.
+    user_schema : dict[str, str]
+        Mapping of column names to JSON Schema type names.
+
+    Returns
+    -------
+    pl.DataFrame
+        The DataFrame with overridden types.
+
+    Raises
+    ------
+    ValueError
+        If a non-string column type doesn't match the user-specified type.
+    """
+    # Convert user schema to Polars types
+    polars_schema = json_schema_to_polars_schema(user_schema)
+
+    # Get current schema
+    current_schema = dict(df.schema)
+
+    # Apply overrides
+    for col_name, target_type in polars_schema.items():
+        if col_name not in current_schema:
+            logger.warning(
+                "Schema specifies column '%s' which doesn't exist in data", col_name
+            )
+            continue
+
+        current_type = current_schema[col_name]
+        if current_type != target_type:
+            # Allow casting from string with warning
+            if current_type == pl.Utf8:
+                logger.warning(
+                    "Casting column '%s' from %s to %s",
+                    col_name,
+                    current_type,
+                    target_type,
+                )
+                try:
+                    df = df.with_columns(df.get_column(col_name).cast(target_type))
+                except Exception as e:
+                    raise ValueError(
+                        f"Failed to cast column '{col_name}' to {target_type}: {e}"
+                    ) from e
+            else:
+                raise ValueError(
+                    f"Type mismatch for column '{col_name}': "
+                    f"inferred as {current_type}, user specified {target_type}. "
+                    f"Only string columns can be cast to different types."
+                )
+
+    return df
+
+
+# ---------------------------------------------------------------------------
+# File (data frame) level – spec §IIa
+# ---------------------------------------------------------------------------
+
+
 def unf_file(
     path: str | Path,
     *,
@@ -451,6 +527,7 @@ def unf_file(
     streaming: bool | None = None,
     batch_size: int = DEFAULT_BATCH_SIZE,
     infer_schema_length: int = 10_000,
+    schema: str | Path | dict[str, str] | None = None,
 ) -> UNFReport:
     """Compute the UNF fingerprint for a CSV or Parquet data file.
 
@@ -460,15 +537,27 @@ def unf_file(
     Parameters
     ----------
     path : str or Path
-        If ``True``, force streaming mode (process in batches, constant
-        memory).  If ``False``, force in-memory mode.  If ``None``
-        (the default), auto-detect based on file size vs. available
-        system memory.
+        Path to a CSV or Parquet data file.
+    params : UNFParameters, optional
+        Normalization parameters (digits, characters, hash_bits, truncate).
+    label : str, optional
+        Human-readable label for the file in the report.
+    streaming : bool, optional
+        If ``True``, force streaming mode (process in batches, constant memory).
+        If ``False``, force in-memory mode. If ``None`` (the default),
+        auto-detect based on file size vs. available system memory.
     batch_size : int
         Number of rows per batch in streaming mode (default 100 000).
     infer_schema_length : int
         Number of rows to scan for CSV schema inference (default 10 000).
         Use -1 to scan all rows.
+    schema : str, Path, dict, or None
+        Optional schema specification to override type inference.
+        Can be:
+        - Path to a JSON Schema file
+        - Inline JSON Schema string
+        - Dictionary mapping column names to JSON Schema type names
+        User-specified types take precedence over inferred types.
 
     Returns
     -------
@@ -478,7 +567,19 @@ def unf_file(
     Raises
     ------
     ValueError
-        If the file format is not supported.
+        If the file format is not supported or schema is invalid.
+
+    Examples
+    --------
+    >>> # With schema file
+    >>> report = unf_file("data.csv", schema="schema.json")
+    >>>
+    >>> # With inline schema
+    >>> schema_json = '{"properties": {"age": {"type": "integer"}}}'
+    >>> report = unf_file("data.csv", schema=schema_json)
+    >>>
+    >>> # With dictionary
+    >>> report = unf_file("data.csv", schema={"age": "integer", "name": "string"})
     """
     if params is None:
         params = UNFParameters()
@@ -486,6 +587,9 @@ def unf_file(
     path = Path(path)
     suffix = path.suffix.lower()
     _validate_suffix(suffix)
+
+    # Parse and validate schema input
+    parsed_schema = parse_schema_input(schema) if schema else None
 
     # --- decide processing mode ---
     if streaming is None:
@@ -496,11 +600,13 @@ def unf_file(
             "Processing %s in streaming mode (batch_size=%d)", path.name, batch_size
         )
         return _unf_file_streaming(
-            path, suffix, params, label, batch_size, infer_schema_length
+            path, suffix, params, label, batch_size, infer_schema_length, parsed_schema
         )
 
     logger.info("Processing %s in-memory", path.name)
-    return _unf_file_memory(path, suffix, params, label, infer_schema_length)
+    return _unf_file_memory(
+        path, suffix, params, label, infer_schema_length, parsed_schema
+    )
 
 
 def _unf_file_memory(
@@ -509,6 +615,7 @@ def _unf_file_memory(
     params: UNFParameters,
     label: str | None,
     infer_schema_length: int = 10_000,
+    user_schema: dict[str, str] | None = None,
 ) -> UNFReport:
     """Process a file entirely in memory with parallel column hashing."""
     if suffix == ".parquet":
@@ -519,6 +626,10 @@ def _unf_file_memory(
         df = pl.read_csv(
             path, separator=_get_separator(suffix), infer_schema_length=schema_length
         )
+
+    # Apply schema overrides if provided
+    if user_schema:
+        df = _apply_schema_to_dataframe(df, user_schema)
 
     report = unf_dataframe(df, params=params, label=label or path.name)
     return report
@@ -531,6 +642,7 @@ def _unf_file_streaming(
     label: str | None,
     batch_size: int,
     infer_schema_length: int = 10_000,
+    user_schema: dict[str, str] | None = None,
 ) -> UNFReport:
     """Process a file in streaming mode using incremental SHA-256 hashers.
 
@@ -546,11 +658,17 @@ def _unf_file_streaming(
     rows_processed = 0
 
     with ThreadPoolExecutor() as executor:
-        for batch_df in _iter_batches(path, suffix, batch_size, infer_schema_length):
+        for _batch_idx, batch_df in enumerate(
+            _iter_batches(path, suffix, batch_size, infer_schema_length)
+        ):
             batch_rows = len(batch_df)
 
-            # First batch: initialise per-column hashers.
+            # First batch: initialise per-column hashers and apply schema overrides.
             if not column_hashers:
+                # Apply schema overrides if provided
+                if user_schema:
+                    batch_df = _apply_schema_to_dataframe(batch_df, user_schema)
+
                 for col_name in batch_df.columns:
                     column_hashers[col_name] = hashlib.sha256()
                     column_types[col_name] = _detect_column_type(
@@ -617,6 +735,7 @@ def unf_dataset(
     streaming: bool | None = None,
     batch_size: int = DEFAULT_BATCH_SIZE,
     infer_schema_length: int = 10_000,
+    schema: str | Path | dict[str, str] | None = None,
 ) -> UNFReport:
     """Compute the combined UNF of multiple files (e.g. a partitioned dataset).
 
@@ -637,6 +756,9 @@ def unf_dataset(
         Rows per batch for streaming.
     infer_schema_length : int, optional
         Number of rows to scan for CSV schema inference. Use -1 to scan all rows.
+    schema : str, Path, dict, or None
+        Optional schema specification to override type inference for all files.
+        Same format as in ``unf_file()``.
 
     Returns
     -------
@@ -662,6 +784,7 @@ def unf_dataset(
             streaming=streaming,
             batch_size=batch_size,
             infer_schema_length=infer_schema_length,
+            schema=schema,
         )
         assert isinstance(report.result, FileResult)
         return report.result

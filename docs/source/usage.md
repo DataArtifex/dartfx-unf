@@ -40,6 +40,63 @@ uv run dartfx-unf file1.csv file2.parquet file3.tsv
 *   **`--characters X`**: String truncation length (default: 128).
 *   **`--truncate`**: Use truncation (R1) instead of IEEE 754 rounding.
 
+### Schema Specification
+
+By default, `dartfx-unf` automatically infers column data types using Polars' type inference. For CSV files, you can override this behavior with a JSON Schema to ensure consistent type handling across systems.
+
+The `--schema` option accepts three formats:
+
+#### 1. JSON Schema File
+
+Create a file named `schema.json`:
+```json
+{
+  "properties": {
+    "id": {"type": "integer"},
+    "name": {"type": "string"},
+    "salary": {"type": "number"},
+    "start_date": {"type": "date"}
+  }
+}
+```
+
+Then use it:
+```bash
+uv run dartfx-unf --schema schema.json data.csv
+```
+
+#### 2. Inline JSON Schema
+
+Pass the schema directly on the command line:
+```bash
+uv run dartfx-unf --schema '{"properties": {"id": {"type": "integer"}, "name": {"type": "string"}}}' data.csv
+```
+
+#### 3. Simple Dictionary Format (CLI only)
+
+For basic use cases, the inline format can be simplified to just `column: type` pairs if it parses properly.
+
+**Supported JSON Schema Types:**
+- `"integer"` → Int64
+- `"number"` → Float64
+- `"string"` → Utf8
+- `"boolean"` → Boolean
+- `"date"` → Date
+- `"time"` → Time
+- `"date-time"` → Datetime
+- `"null"` → Null
+
+**Error Handling:**
+- **String columns** can be overridden to any type with a warning
+- **Other type mismatches** raise an error (e.g., trying to cast an inferred integer to date)
+- **Missing columns** in data are logged as warnings but don't fail
+
+**Example: Type Override**
+```bash
+# CSV infers "01234" as string, but you want it as integer
+uv run dartfx-unf --schema '{"properties": {"id": {"type": "integer"}}}' data.csv
+```
+
 ### Performance Tuning
 
 *   **`--streaming`**: Force Polars' "out-of-core" streaming mode. Recommended for files larger than 1GB.
@@ -71,6 +128,17 @@ report = unf_file("data.csv", params=params)
 # Control CSV schema inference
 report = unf_file("data.csv", infer_schema_length=50_000)  # scan 50k rows
 report = unf_file("data.csv", infer_schema_length=-1)     # scan all rows
+
+# Use a JSON Schema to override type inference
+report = unf_file("data.csv", schema="schema.json")  # file path
+
+# Or provide inline JSON schema
+schema_json = '{"properties": {"id": {"type": "integer"}, "name": {"type": "string"}}}'
+report = unf_file("data.csv", schema=schema_json)
+
+# Or use a Python dictionary (shorthand)
+schema_dict = {"id": "integer", "name": "string", "salary": "number"}
+report = unf_file("data.csv", schema=schema_dict)
 ```
 
 ### 2. Large Datasets (Streaming)
@@ -113,6 +181,10 @@ print(f"Dataset-level UNF: {report.result.unf}")
 # Access individual file UNFs
 for entry in report.result.entries:
     print(f"  {entry.label}: {entry.unf}")
+
+# Apply a common schema to all files
+schema = {"id": "integer", "date": "date", "value": "number"}
+report = unf_dataset(files, schema=schema)
 ```
 
 ### 4. In-Memory Data (DataFrames & Series)

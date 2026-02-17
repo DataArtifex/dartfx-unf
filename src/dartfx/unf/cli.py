@@ -117,6 +117,13 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="ROWS",
         help="Rows to scan for CSV schema inference (default: 10000, use -1 for all).",
     )
+    parser.add_argument(
+        "--schema",
+        type=str,
+        default=None,
+        metavar="SCHEMA",
+        help="JSON Schema file or inline JSON for type overrides.",
+    )
     return parser
 
 
@@ -160,6 +167,7 @@ def main(argv: list[str] | None = None) -> int:
             streaming=args.streaming,
             batch_size=args.batch_size,
             infer_schema_length=args.scan_length,
+            schema=args.schema,
         )
     else:
         report = unf_dataset(
@@ -169,6 +177,7 @@ def main(argv: list[str] | None = None) -> int:
             streaming=args.streaming,
             batch_size=args.batch_size,
             infer_schema_length=args.scan_length,
+            schema=args.schema,
         )
 
     if args.verbose:

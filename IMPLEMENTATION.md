@@ -76,6 +76,7 @@ Input File (.csv / .parquet)
 | Footnote | Non-default parameters | N, X, H, R1 embedded in header string. |
 | — | CLI | `dartfx-unf` command with `--quiet`, `--output`, `--verbose`, `--validate`. |
 | — | JSON report | Structured output matching `docs/unf6_schema.json` with schema validation. |
+| — | Schema specification | JSON Schema-based type override for CSV data. Supports file paths, inline JSON, and Python dicts. Ensures consistent type handling across systems. |
 | — | Performance | Memory-aware streaming, vectorized normalization, and parallel column/file processing. |
 | — | API | Helpers for DataFrames, bytes, and file-like streams. |
 | — | Benchmarking | Comprehensive macro-benchmark suite with CI integration. |

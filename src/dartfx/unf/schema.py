@@ -374,7 +374,7 @@ def json_schema_to_polars_schema(
                 f"Unsupported type '{json_type}' for column '{col_name}'. "
                 f"Supported types: {', '.join(JSON_TO_POLARS_TYPE_MAP.keys())}"
             )
-        polars_schema[col_name] = JSON_TO_POLARS_TYPE_MAP[json_type]
+        polars_schema[col_name] = JSON_TO_POLARS_TYPE_MAP[json_type]()
 
     return polars_schema
 

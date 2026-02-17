@@ -8,7 +8,7 @@
 [![Documentation](https://img.shields.io/badge/docs-v6-blue)](https://dataartifex.github.io/dartfx-unf/)
 [![DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/DataArtifex/dartfx-unf)
 
-**A high-performance Python implementation of the [Universal Number Fingerprint (UNF) v6 specification]((https://guides.dataverse.org/en/latest/developers/unf/unf-v6.html)).**
+**A high-performance Python implementation of the [Universal Numerical Fingerprint (UNF) v6 specification]((https://guides.dataverse.org/en/latest/developers/unf/unf-v6.html)).**
 
 ## Overview
 

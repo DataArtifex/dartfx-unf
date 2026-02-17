@@ -44,6 +44,8 @@ uv run dartfx-unf file1.csv file2.parquet file3.tsv
 
 By default, `dartfx-unf` automatically infers column data types using Polars' type inference. For CSV files, you can override this behavior with a JSON Schema to ensure consistent type handling across systems.
 
+**See the [Schema Specification Reference](schema.md) for comprehensive documentation**, including advanced features like custom date/datetime format support.
+
 The `--schema` option accepts three formats:
 
 #### 1. JSON Schema File
@@ -81,15 +83,42 @@ For basic use cases, the inline format can be simplified to just `column: type` 
 - `"number"` → Float64
 - `"string"` → Utf8
 - `"boolean"` → Boolean
-- `"date"` → Date
+- `"date"` → Date (supports custom formats via `format` property)
 - `"time"` → Time
-- `"date-time"` → Datetime
+- `"date-time"` → Datetime (supports custom formats via `format` property)
 - `"null"` → Null
+
+#### Date/DateTime with Custom Formats
+
+If your CSV contains dates or datetimes in a non-ISO 8601 format, specify the format using the `format` property:
+
+**Single format example:**
+```bash
+uv run dartfx-unf --schema '{"properties": {"hire_date": {"type": "date", "format": "dd.mm.yyyy"}}}' data.csv
+```
+
+**Multiple formats (oneOf) example:**
+```bash
+uv run dartfx-unf --schema '{
+  "properties": {
+    "date": {
+      "type": "date",
+      "oneOf": [
+        {"format": "dd.mm.yyyy"},
+        {"format": "yyyy-mm-dd"}
+      ]
+    }
+  }
+}' data.csv
+```
+
+See the [Schema Specification Reference](schema.md) for a complete list of supported format strings and more examples.
 
 **Error Handling:**
 - **String columns** can be overridden to any type with a warning
 - **Other type mismatches** raise an error (e.g., trying to cast an inferred integer to date)
 - **Missing columns** in data are logged as warnings but don't fail
+- **Format mismatch** raises an error with details (e.g., "Failed to cast column 'date' from String to Date")
 
 **Example: Type Override**
 ```bash
@@ -139,6 +168,31 @@ report = unf_file("data.csv", schema=schema_json)
 # Or use a Python dictionary (shorthand)
 schema_dict = {"id": "integer", "name": "string", "salary": "number"}
 report = unf_file("data.csv", schema=schema_dict)
+
+# Use custom date formats
+schema_with_dates = {
+    "properties": {
+        "hire_date": {
+            "type": "date",
+            "format": "dd.mm.yyyy"  # European format
+        }
+    }
+}
+report = unf_file("data.csv", schema=schema_with_dates)
+
+# Support multiple date formats in same column
+schema_mixed = {
+    "properties": {
+        "date": {
+            "type": "date",
+            "oneOf": [
+                {"format": "dd.mm.yyyy"},
+                {"format": "yyyy-mm-dd"}
+            ]
+        }
+    }
+}
+report = unf_file("data.csv", schema=schema_mixed)
 ```
 
 ### 2. Large Datasets (Streaming)

@@ -82,6 +82,7 @@ Input File (.csv / .parquet)
 | — | Benchmarking | Comprehensive macro-benchmark suite with CI integration. |
 | — | Documentation | Sphinx site with Usage Guide, API Reference, and Spec Summary. |
 | — | QA | Pre-commit hooks with `ruff`, `ruff-format`, and automated linting. |
+| — | Date/DateTime Format Support | JSON Schema `format` property and `oneOf` for explicit date/datetime parsing with multiple format support. |
 
 ### Validated Against Official Test Vectors
 

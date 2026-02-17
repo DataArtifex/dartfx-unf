@@ -442,6 +442,98 @@ def _iter_batches_parquet(
         yield cast(pl.DataFrame, pl.from_arrow(record_batch))
 
 
+def _parse_string_to_date_with_formats(
+    col: pl.Expr,
+    formats: list[str],
+    col_name: str,
+) -> pl.Expr:
+    """Parse string column to date using explicit format strings.
+
+    Handles mixed formats by trying each format and using coalesce
+    to fill in values that failed with previous formats.
+
+    Parameters
+    ----------
+    col : pl.Expr
+        String column expression to parse.
+    formats : list[str]
+        List of Python strptime format strings to try.
+    col_name : str
+        Column name for logging.
+
+    Returns
+    -------
+    pl.Expr
+        Date expression.
+
+    Raises
+    ------
+    ValueError
+        If parsing fails with all provided formats.
+    """
+    if not formats:
+        raise ValueError(f"No date formats provided for column '{col_name}'.")
+
+    # Build a coalescing expression that tries each format
+    # Start with the first format's parsed values
+    result_expr = col.str.strptime(pl.Date, formats[0], strict=False)
+
+    # Try subsequent formats for rows that failed with first format
+    for fmt in formats[1:]:
+        result_expr = pl.coalesce(
+            result_expr,
+            col.str.strptime(pl.Date, fmt, strict=False),
+        )
+
+    return result_expr
+
+
+def _parse_string_to_datetime_with_formats(
+    col: pl.Expr,
+    formats: list[str],
+    col_name: str,
+) -> pl.Expr:
+    """Parse string column to datetime using explicit format strings.
+
+    Handles mixed formats by trying each format and using coalesce
+    to fill in values that failed with previous formats.
+
+    Parameters
+    ----------
+    col : pl.Expr
+        String column expression to parse.
+    formats : list[str]
+        List of Python strptime format strings to try.
+    col_name : str
+        Column name for logging.
+
+    Returns
+    -------
+    pl.Expr
+        Datetime expression.
+
+    Raises
+    ------
+    ValueError
+        If parsing fails with all provided formats.
+    """
+    if not formats:
+        raise ValueError(f"No datetime formats provided for column '{col_name}'.")
+
+    # Build a coalescing expression that tries each format
+    # Start with the first format's parsed values
+    result_expr = col.str.strptime(pl.Datetime, formats[0], strict=False)
+
+    # Try subsequent formats for rows that failed with first format
+    for fmt in formats[1:]:
+        result_expr = pl.coalesce(
+            result_expr,
+            col.str.strptime(pl.Datetime, fmt, strict=False),
+        )
+
+    return result_expr
+
+
 # ---------------------------------------------------------------------------
 # File (data frame) level – spec §IIa
 # ---------------------------------------------------------------------------
@@ -449,20 +541,23 @@ def _iter_batches_parquet(
 
 def _apply_schema_to_dataframe(
     df: pl.DataFrame,
-    user_schema: dict[str, str],
+    user_schema: dict[str, str] | dict[str, dict],
 ) -> pl.DataFrame:
     """Apply user-provided schema overrides to a DataFrame.
 
     Converts column types according to the user-provided schema.
-    String columns can be cast to any type with a warning.
-    Other type mismatches raise an error.
+    Handles both simple type specifications and full schema objects
+    with format specifications for date/datetime columns.
+    Attempts to cast all columns to the specified types.
+    Raises an error if any cast fails.
 
     Parameters
     ----------
     df : pl.DataFrame
         The DataFrame to apply overrides to.
-    user_schema : dict[str, str]
-        Mapping of column names to JSON Schema type names.
+    user_schema : dict[str, str] or dict[str, dict]
+        Mapping of column names to JSON Schema type names (dict[str, str])
+        or full schema objects (dict[str, dict]).
 
     Returns
     -------
@@ -472,10 +567,31 @@ def _apply_schema_to_dataframe(
     Raises
     ------
     ValueError
-        If a non-string column type doesn't match the user-specified type.
+        If any column cannot be cast to the user-specified type.
     """
+    from dartfx.unf.schema import (
+        _extract_primary_type,
+        extract_date_formats_from_schema,
+    )
+
+    # Extract type mapping and schema objects
+    column_types: dict[str, str] = {}
+    column_schemas: dict[str, dict] = {}
+
+    for col_name, col_spec in user_schema.items():
+        if isinstance(col_spec, dict):
+            # Full schema object with potential format/oneOf properties
+            column_schemas[col_name] = col_spec
+            if "type" in col_spec:
+                primary_type = _extract_primary_type(col_spec["type"])
+                if primary_type:
+                    column_types[col_name] = primary_type
+        elif isinstance(col_spec, str):
+            # Simple type string
+            column_types[col_name] = col_spec
+
     # Convert user schema to Polars types
-    polars_schema = json_schema_to_polars_schema(user_schema)
+    polars_schema = json_schema_to_polars_schema(column_types)
 
     # Get current schema
     current_schema = dict(df.schema)
@@ -490,26 +606,61 @@ def _apply_schema_to_dataframe(
 
         current_type = current_schema[col_name]
         if current_type != target_type:
-            # Allow casting from string with warning
-            if current_type == pl.Utf8:
-                logger.warning(
-                    "Casting column '%s' from %s to %s",
-                    col_name,
-                    current_type,
-                    target_type,
-                )
-                try:
-                    df = df.with_columns(df.get_column(col_name).cast(target_type))
-                except Exception as e:
-                    raise ValueError(
-                        f"Failed to cast column '{col_name}' to {target_type}: {e}"
-                    ) from e
-            else:
+            # Attempt to cast to the user-specified type
+            logger.warning(
+                "Casting column '%s' from %s to %s",
+                col_name,
+                current_type,
+                target_type,
+            )
+            try:
+                col = pl.col(col_name)
+                # If source is string and target is not string, replace empty
+                # strings with null to allow proper casting
+                if current_type == pl.Utf8 and target_type != pl.Utf8:
+                    col = pl.when(col == "").then(None).otherwise(col)
+
+                # Get column schema if available for format info
+                col_schema = column_schemas.get(col_name)
+
+                # Special handling for date/datetime with format specifications
+                if target_type == pl.Date and current_type == pl.Utf8:
+                    if col_schema:
+                        formats = extract_date_formats_from_schema(col_schema)
+                        if formats:
+                            col = _parse_string_to_date_with_formats(
+                                col, formats, col_name
+                            )
+                        else:
+                            # No format specified, try standard ISO
+                            col = col.str.strptime(pl.Date, "%Y-%m-%d")
+                    else:
+                        # No schema, try standard ISO
+                        col = col.str.strptime(pl.Date, "%Y-%m-%d")
+                elif target_type == pl.Datetime and current_type == pl.Utf8:
+                    if col_schema:
+                        formats = extract_date_formats_from_schema(col_schema)
+                        if formats:
+                            col = _parse_string_to_datetime_with_formats(
+                                col, formats, col_name
+                            )
+                        else:
+                            # No format specified, try standard ISO
+                            col = col.str.strptime(pl.Datetime, "%Y-%m-%dT%H:%M:%S")
+                    else:
+                        # No schema, try standard ISO
+                        col = col.str.strptime(pl.Datetime, "%Y-%m-%dT%H:%M:%S")
+                else:
+                    # Standard cast for other types
+                    col = col.cast(target_type)
+
+                # Always alias to ensure the column name is preserved
+                df = df.with_columns(col.alias(col_name))
+            except Exception as e:
                 raise ValueError(
-                    f"Type mismatch for column '{col_name}': "
-                    f"inferred as {current_type}, user specified {target_type}. "
-                    f"Only string columns can be cast to different types."
-                )
+                    f"Failed to cast column '{col_name}' from {current_type} to "
+                    f"{target_type}: {e}"
+                ) from e
 
     return df
 
@@ -588,8 +739,10 @@ def unf_file(
     suffix = path.suffix.lower()
     _validate_suffix(suffix)
 
-    # Parse and validate schema input
-    parsed_schema = parse_schema_input(schema) if schema else None
+    # Parse and validate schema input with full schema objects (for format support)
+    parsed_schema = (
+        parse_schema_input(schema, return_full_schema=True) if schema else None
+    )
 
     # --- decide processing mode ---
     if streaming is None:

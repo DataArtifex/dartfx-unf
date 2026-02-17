@@ -48,22 +48,177 @@ ISO_8601_FORMATS = {
     "date-time": "%Y-%m-%dT%H:%M:%S",
 }
 
+# Map JSON Schema format strings to Python strptime patterns
+# Handles common format specifications for dates and datetimes
+FORMAT_TO_STRPTIME: dict[str, str] = {
+    # ISO 8601 formats
+    "date": "%Y-%m-%d",  # Standard ISO date
+    "time": "%H:%M:%S",  # Standard time
+    "date-time": "%Y-%m-%dT%H:%M:%S",  # ISO datetime
+    # Common variants
+    "yyyy-mm-dd": "%Y-%m-%d",
+    "yy-mm-dd": "%y-%m-%d",
+    "dd-mm-yyyy": "%d-%m-%Y",
+    "dd-mm-yy": "%d-%m-%y",
+    "mm-dd-yyyy": "%m-%d-%Y",
+    "mm-dd-yy": "%m-%d-%y",
+    "dd.mm.yyyy": "%d.%m.%Y",
+    "dd.mm.yy": "%d.%m.%y",
+    "mm.dd.yyyy": "%m.%d.%Y",
+    "mm.dd.yy": "%m.%d.%y",
+    "dd/mm/yyyy": "%d/%m/%Y",
+    "dd/mm/yy": "%d/%m/%y",
+    "mm/dd/yyyy": "%m/%d/%Y",
+    "mm/dd/yy": "%m/%d/%y",
+    # With time
+    "yyyy-mm-dd hh:mm:ss": "%Y-%m-%d %H:%M:%S",
+    "dd-mm-yyyy hh:mm:ss": "%d-%m-%Y %H:%M:%S",
+    "dd.mm.yyyy hh:mm:ss": "%d.%m.%Y %H:%M:%S",
+    # Timezone-aware (remove TZ info, will handle separately if needed)
+    "yyyy-mm-ddThh:mm:ss": "%Y-%m-%dT%H:%M:%S",
+    "dd-mm-yyyyThh:mm:ss": "%d-%m-%YT%H:%M:%S",
+}
 
-def parse_schema_file(path: str | Path) -> dict[str, str]:
-    """Parse a JSON Schema file and extract column type definitions.
+
+def _extract_primary_type(type_spec: str | list | None) -> str | None:
+    """Extract the primary data type from a JSON Schema type specification.
+
+    Handles both simple types (string) and union types (list).
+    Filters out "null" type and returns the primary data type.
+
+    Parameters
+    ----------
+    type_spec : str, list, or None
+        Type specification from JSON Schema. Can be:
+        - A string: "integer"
+        - A list: ["integer", "null"] or ["null", "string"]
+        - None: Missing or null
+
+    Returns
+    -------
+    str or None
+        The primary (non-null) type, or None if only "null" is specified.
+
+    Examples
+    --------
+    >>> _extract_primary_type("integer")
+    'integer'
+    >>> _extract_primary_type(["integer", "null"])
+    'integer'
+    >>> _extract_primary_type(["null", "string"])
+    'string'
+    >>> _extract_primary_type(["null"])
+    None
+    """
+    if type_spec is None:
+        return None
+
+    if isinstance(type_spec, str):
+        return type_spec
+
+    if isinstance(type_spec, list):
+        # Filter out "null" and return first non-null type
+        non_null_types = [t for t in type_spec if t != "null"]
+        if non_null_types:
+            return non_null_types[0]
+        # Only null types
+        return None
+
+    return None
+
+
+def extract_date_formats_from_schema(column_schema: dict) -> list[str] | None:
+    """Extract date/time format strings from a JSON Schema column definition.
+
+    Supports both single format and multiple formats via oneOf:
+    - Single format: {"format": "dd-mm-yyyy"}
+    - Multiple formats: {"oneOf": [{"format": "dd-mm-yyyy"}, {"format": "mm-dd-yyyy"}]}
+
+    Maps JSON format strings to Python strptime patterns.
+
+    Parameters
+    ----------
+    column_schema : dict
+        Full column schema object from JSON Schema.
+
+    Returns
+    -------
+    list[str] or None
+        List of Python strptime format strings (e.g., ['%d-%m-%Y', '%m-%d-%Y']),
+        or None if no format is specified or recognized.
+
+    Examples
+    --------
+    >>> schema = {"type": "date", "format": "dd-mm-yyyy"}
+    >>> extract_date_formats_from_schema(schema)
+    ['%d-%m-%Y']
+
+    >>> schema = {"type": "date", "oneOf": [
+    ...     {"format": "dd-mm-yyyy"},
+    ...     {"format": "mm-dd-yyyy"}
+    ... ]}
+    >>> extract_date_formats_from_schema(schema)
+    ['%d-%m-%Y', '%m-%d-%Y']
+    """
+    if not isinstance(column_schema, dict):
+        return None
+
+    formats = []
+
+    # Check for single format property
+    if "format" in column_schema:
+        fmt = column_schema["format"]
+        if isinstance(fmt, str):
+            # Case-insensitive lookup and convert to lowercase for matching
+            fmt_lower = fmt.lower()
+            if fmt_lower in FORMAT_TO_STRPTIME:
+                formats.append(FORMAT_TO_STRPTIME[fmt_lower])
+            else:
+                logger.warning(
+                    "Unknown date format '%s' in schema; will use auto-detection", fmt
+                )
+
+    # Check for oneOf property (multiple format alternatives)
+    if "oneOf" in column_schema:
+        one_of = column_schema["oneOf"]
+        if isinstance(one_of, list):
+            for alternative in one_of:
+                if isinstance(alternative, dict) and "format" in alternative:
+                    fmt = alternative["format"]
+                    if isinstance(fmt, str):
+                        fmt_lower = fmt.lower()
+                        if fmt_lower in FORMAT_TO_STRPTIME:
+                            strptime_fmt = FORMAT_TO_STRPTIME[fmt_lower]
+                            if strptime_fmt not in formats:  # Avoid duplicates
+                                formats.append(strptime_fmt)
+                        else:
+                            logger.warning(
+                                "Unknown date format '%s' in oneOf; skipping", fmt
+                            )
+
+    return formats if formats else None
+
+
+def parse_schema_file(
+    path: str | Path, return_full_schema: bool = False
+) -> dict[str, str] | dict[str, dict]:
+    """Parse a JSON Schema file and extract column definitions.
 
     Expects a JSON object with a "properties" key containing column definitions.
-    Each property should have a "type" field.
+    Each property should have a "type" field and optional "format", "oneOf", etc.
 
     Parameters
     ----------
     path : str or Path
         Path to the JSON Schema file.
+    return_full_schema : bool, optional
+        If True (default), return full schema objects. If False, return type names.
 
     Returns
     -------
-    dict[str, str]
-        Mapping of column names to JSON Schema type names.
+    dict[str, str] or dict[str, dict]
+        If return_full_schema=True: Full schema objects with format info.
+        If return_full_schema=False: Just type name strings.
 
     Raises
     ------
@@ -95,28 +250,51 @@ def parse_schema_file(path: str | Path) -> dict[str, str]:
     properties = schema_dict.get("properties", {})
     if not properties:
         logger.warning("No 'properties' found in schema")
-        return {}
+        return {} if return_full_schema else {}
+
+    if return_full_schema:
+        result: dict[str, dict] = {}
+        for col_name, col_schema in properties.items():
+            if isinstance(col_schema, dict) and "type" in col_schema:
+                result[col_name] = col_schema
+            elif isinstance(col_schema, str):
+                result[col_name] = {"type": col_schema}
+        return result
 
     column_types: dict[str, str] = {}
     for col_name, col_schema in properties.items():
         if isinstance(col_schema, dict) and "type" in col_schema:
-            column_types[col_name] = col_schema["type"]
+            primary_type = _extract_primary_type(col_schema["type"])
+            if primary_type:
+                column_types[col_name] = primary_type
+            else:
+                logger.warning(
+                    "No primary type found for column '%s' (only null specified)",
+                    col_name,
+                )
+        elif isinstance(col_schema, str):
+            column_types[col_name] = col_schema
 
     return column_types
 
 
-def parse_schema_inline(schema_json: str) -> dict[str, str]:
+def parse_schema_inline(
+    schema_json: str, return_full_schema: bool = False
+) -> dict[str, str] | dict[str, dict]:
     """Parse an inline JSON Schema string.
 
     Parameters
     ----------
     schema_json : str
-        JSON string with column type definitions.
+        JSON string with column type definitions
+    return_full_schema : bool, optional
+        If True (default), return full schema objects. If False, return type names.
 
     Returns
     -------
-    dict[str, str]
-        Mapping of column names to JSON Schema type names.
+    dict[str, str] or dict[str, dict]
+        If return_full_schema=True: Full schema objects with format info.
+        If return_full_schema=False: Just type name strings.
 
     Raises
     ------
@@ -141,10 +319,26 @@ def parse_schema_inline(schema_json: str) -> dict[str, str]:
     # Support both direct format and properties format
     properties = schema_dict.get("properties", schema_dict)
 
+    if return_full_schema:
+        result: dict[str, dict] = {}
+        for col_name, col_schema in properties.items():
+            if isinstance(col_schema, dict) and "type" in col_schema:
+                result[col_name] = col_schema
+            elif isinstance(col_schema, str):
+                result[col_name] = {"type": col_schema}
+        return result
+
     column_types: dict[str, str] = {}
     for col_name, col_schema in properties.items():
         if isinstance(col_schema, dict) and "type" in col_schema:
-            column_types[col_name] = col_schema["type"]
+            primary_type = _extract_primary_type(col_schema["type"])
+            if primary_type:
+                column_types[col_name] = primary_type
+            else:
+                logger.warning(
+                    "No primary type found for column '%s' (only null specified)",
+                    col_name,
+                )
         elif isinstance(col_schema, str):
             # Allow shorthand: {"age": "integer"}
             column_types[col_name] = col_schema
@@ -202,8 +396,8 @@ def apply_schema_override(
     user_schema : dict[str, pl.DataType] or None
         User-provided type overrides. None means no overrides.
     allow_loose_cast : bool
-        If True, allow casting string columns to any type with a warning.
-        If False, raise an error on type mismatches.
+        If True, allow overriding any type. If False, raise an error on
+        type mismatches (except for new columns).
 
     Returns
     -------
@@ -213,7 +407,8 @@ def apply_schema_override(
     Raises
     ------
     ValueError
-        If a non-string column type doesn't match user-specified type.
+        If a column type doesn't match user-specified type and
+        allow_loose_cast is False.
     """
     if user_schema is None:
         return inferred_schema
@@ -230,7 +425,7 @@ def apply_schema_override(
                 "Schema override: new column '%s' with type %s", col_name, user_type
             )
         elif inferred_type != user_type:
-            if inferred_type == pl.Utf8 or allow_loose_cast:
+            if allow_loose_cast:
                 logger.warning(
                     "Schema override: column '%s' inferred as %s, overriding to %s",
                     col_name,
@@ -249,24 +444,31 @@ def apply_schema_override(
 
 
 def parse_schema_input(
-    schema_input: str | Path | dict[str, str] | None,
-) -> dict[str, str] | None:
-    """Parse various schema input formats into a column type dictionary.
+    schema_input: str | Path | dict | None,
+    return_full_schema: bool = False,
+) -> dict[str, str] | dict[str, dict] | None:
+    """Parse various schema input formats into a schema dictionary.
 
     Handles:
     - File path to JSON Schema
     - Inline JSON Schema string
-    - Already-parsed dictionary
+    - Already-parsed dictionary (with or without "properties" wrapper)
 
     Parameters
     ----------
     schema_input : str, Path, dict, or None
         Schema input in various formats.
+    return_full_schema : bool, optional
+        If True (default), return full column schema objects (preserves
+        format, oneOf, etc.). If False, return only type names for
+        backward compatibility.
 
     Returns
     -------
-    dict[str, str] or None
-        Mapping of column names to JSON Schema type names, or None if no input.
+    dict[str, str], dict[str, dict], or None
+        If return_full_schema=True: Mapping of column names to full schema dicts.
+        If return_full_schema=False: Mapping of column names to type names.
+        Returns None if no input.
 
     Raises
     ------
@@ -279,18 +481,48 @@ def parse_schema_input(
         return None
 
     if isinstance(schema_input, dict):
-        return schema_input
+        # Handle dicts with or without "properties" wrapper
+        if "properties" in schema_input:
+            # Full JSON Schema format with "properties" key
+            properties = schema_input["properties"]
+        else:
+            # Direct mapping of column definitions
+            properties = schema_input
+
+        if return_full_schema:
+            # Return full schema objects
+            result: dict[str, dict] = {}
+            for col_name, col_spec in properties.items():
+                if isinstance(col_spec, dict):
+                    result[col_name] = col_spec
+                elif isinstance(col_spec, str):
+                    # Convert simple type strings to schema objects
+                    result[col_name] = {"type": col_spec}
+            return result
+
+        # Return just type names
+        result_types: dict[str, str] = {}
+        for col_name, col_spec in properties.items():
+            if isinstance(col_spec, dict) and "type" in col_spec:
+                primary_type = _extract_primary_type(col_spec["type"])
+                if primary_type:
+                    result_types[col_name] = primary_type
+            elif isinstance(col_spec, str):
+                result_types[col_name] = col_spec
+        return result_types
 
     if isinstance(schema_input, (str, Path)):
         schema_str = str(schema_input)
         path = Path(schema_str)
 
         if path.exists():
-            return parse_schema_file(path)
+            return parse_schema_file(path, return_full_schema=return_full_schema)
 
         # Try parsing as inline JSON
         if schema_str.startswith("{"):
-            return parse_schema_inline(schema_str)
+            return parse_schema_inline(
+                schema_str, return_full_schema=return_full_schema
+            )
 
         # Neither file nor valid JSON
         raise ValueError(

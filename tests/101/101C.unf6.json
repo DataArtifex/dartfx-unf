@@ -1,0 +1,48 @@
+{
+  "unf_version": "6",
+  "metadata": {
+    "timestamp": "2026-02-18T01:39:24.794331+00:00",
+    "parameters": {
+      "N": 7,
+      "X": 128,
+      "H": 128,
+      "rounding_mode": "IEEE_754_nearest_even"
+    },
+    "software": {
+      "name": "dartfx-unf",
+      "version": "0.1.0"
+    }
+  },
+  "result": {
+    "unf": "UNF:6:jBDVQfqmx+NZ9nuRqeSn7w==",
+    "columns": [
+      {
+        "name": "id",
+        "unf": "UNF:6:MUgi0nTvwDmhZwmIUbMn7g==",
+        "type": "numeric"
+      },
+      {
+        "name": "name",
+        "unf": "UNF:6:pYSxxoyy9sucdlXaVOd9Tw==",
+        "type": "string"
+      },
+      {
+        "name": "sex",
+        "unf": "UNF:6:RxEHmny3HjYmT/eECGz+5g==",
+        "type": "string"
+      },
+      {
+        "name": "dob",
+        "unf": "UNF:6:fbmudegJN41OkDk0HQX9XA==",
+        "type": "string"
+      },
+      {
+        "name": "income",
+        "unf": "UNF:6:1yrvBVAFOT3yFj/TwNb+HQ==",
+        "type": "numeric"
+      }
+    ],
+    "label": "101C.csv",
+    "type": "file"
+  }
+}

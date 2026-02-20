@@ -1,12 +1,12 @@
 # dartfx-unf
 
+[![Documentation](https://img.shields.io/badge/docs-blue)](https://www.dataartifex.org/docs/dartfx-unf/)
+[![DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/DataArtifex/dartfx-unf)
 [![Package Status](https://img.shields.io/badge/PyPI-not%20published-lightgrey)](https://github.com/DataArtifex/dartfx-unf)
 [![CI](https://github.com/DataArtifex/dartfx-unf/actions/workflows/test.yml/badge.svg)](https://github.com/DataArtifex/dartfx-unf/actions/workflows/test.yml)
-[![License](https://img.shields.io/github/license/DataArtifex/dartfx-unf.svg)](https://github.com/DataArtifex/dartfx-unf/blob/main/LICENSE.txt)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
-[![Documentation](https://img.shields.io/badge/docs-v6-blue)](https://dataartifex.github.io/dartfx-unf/)
-[![DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/DataArtifex/dartfx-unf)
+[![License](https://img.shields.io/github/license/DataArtifex/dartfx-unf.svg)](https://github.com/DataArtifex/dartfx-unf/blob/main/LICENSE.txt)
 
 **A high-performance Python implementation of the [Universal Numerical Fingerprint (UNF) v6 specification]((https://guides.dataverse.org/en/latest/developers/unf/unf-v6.html)), a format agnostic standard for data fingerprinting.**
 
@@ -15,8 +15,6 @@
 `dartfx-unf` is a blazing-fast, memory-efficient calculator for [UNF Version 6](https://guides.dataverse.org/en/latest/developers/unf/unf-v6.html). It ensures that your data remains identifiable and consistent across different software versions, file formats, and operating systems by normalizing and hashing the underlying data values rather than the file itself.
 
 Built on top of the **Polars** engine, it provides native support for massive datasets with a professional-grade CLI and a clean Python API.
-
-
 
 *This package was vibe coded with Claude Opus 4.6 and Gemini 3 Flash.*
 

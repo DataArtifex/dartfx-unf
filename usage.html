@@ -141,15 +141,15 @@
 <section id="configuration-flags">
 <h3>Configuration Flags<a class="headerlink" href="#configuration-flags" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p><strong><code class="docutils literal notranslate"><span class="pre">--digits</span> <span class="pre">N</span></code></strong>: Number of significant digits for numeric precision (default: 7).</p></li>
-<li><p><strong><code class="docutils literal notranslate"><span class="pre">--hash-bits</span> <span class="pre">H</span></code></strong>: SHA-256 hash truncation in bits (128, 192, 196, or 256).</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">--characters</span> <span class="pre">X</span></code></strong>: String truncation length (default: 128).</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">--truncate</span></code></strong>: Use truncation (R1) instead of IEEE 754 rounding.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">--parse-date</span></code></strong>: Attempt to auto-parse dates in CSV files (on by default).</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">--no-parse-date</span></code></strong>: Disable automatic date parsing.</p></li>
 </ul>
 </section>
 <section id="schema-specification">
 <h3>Schema Specification<a class="headerlink" href="#schema-specification" title="Link to this heading"></a></h3>
-<p>By default, <code class="docutils literal notranslate"><span class="pre">dartfx-unf</span></code> automatically infers column data types using Polars’ type inference. For CSV files, you can override this behavior with a JSON Schema to ensure consistent type handling across systems.</p>
+<p>By default, <code class="docutils literal notranslate"><span class="pre">dartfx-unf</span></code> automatically infers column data types using Polars’ type inference. For CSV files, it also attempts to automatically parse date and datetime columns (equivalent to <code class="docutils literal notranslate"><span class="pre">--parse-date</span></code>). You can override this behavior with a JSON Schema to ensure consistent type handling across systems or use <code class="docutils literal notranslate"><span class="pre">--no-parse-date</span></code> to treat potential date columns as simple strings.</p>
 <p><strong>See the <a class="reference internal" href="schema.html"><span class="std std-doc">Schema Specification Reference</span></a> for comprehensive documentation</strong>, including advanced features like custom date/datetime format support.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">--schema</span></code> option accepts three formats:</p>
 <section id="json-schema-file">
@@ -258,6 +258,10 @@ uv<span class="w"> </span>run<span class="w"> </span>dartfx-unf<span class="w"> 
 <span class="c1"># Control CSV schema inference</span>
 <span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span><span class="s2">&quot;data.csv&quot;</span><span class="p">,</span> <span class="n">infer_schema_length</span><span class="o">=</span><span class="mi">50_000</span><span class="p">)</span>  <span class="c1"># scan 50k rows</span>
 <span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span><span class="s2">&quot;data.csv&quot;</span><span class="p">,</span> <span class="n">infer_schema_length</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>     <span class="c1"># scan all rows</span>
+
+<span class="c1"># Control automatic date parsing (on by default for CSV)</span>
+<span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span><span class="s2">&quot;data.csv&quot;</span><span class="p">,</span> <span class="n">parse_dates</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
 
 <span class="c1"># Use a JSON Schema to override type inference</span>
 <span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span><span class="s2">&quot;data.csv&quot;</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="s2">&quot;schema.json&quot;</span><span class="p">)</span>  <span class="c1"># file path</span>

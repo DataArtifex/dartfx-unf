@@ -35,14 +35,14 @@ uv run dartfx-unf file1.csv file2.parquet file3.tsv
 
 ### Configuration Flags
 
-*   **`--digits N`**: Number of significant digits for numeric precision (default: 7).
-*   **`--hash-bits H`**: SHA-256 hash truncation in bits (128, 192, 196, or 256).
 *   **`--characters X`**: String truncation length (default: 128).
 *   **`--truncate`**: Use truncation (R1) instead of IEEE 754 rounding.
+*   **`--parse-date`**: Attempt to auto-parse dates in CSV files (on by default).
+*   **`--no-parse-date`**: Disable automatic date parsing.
 
 ### Schema Specification
 
-By default, `dartfx-unf` automatically infers column data types using Polars' type inference. For CSV files, you can override this behavior with a JSON Schema to ensure consistent type handling across systems.
+By default, `dartfx-unf` automatically infers column data types using Polars' type inference. For CSV files, it also attempts to automatically parse date and datetime columns (equivalent to `--parse-date`). You can override this behavior with a JSON Schema to ensure consistent type handling across systems or use `--no-parse-date` to treat potential date columns as simple strings.
 
 **See the [Schema Specification Reference](schema.md) for comprehensive documentation**, including advanced features like custom date/datetime format support.
 
@@ -157,6 +157,10 @@ report = unf_file("data.csv", params=params)
 # Control CSV schema inference
 report = unf_file("data.csv", infer_schema_length=50_000)  # scan 50k rows
 report = unf_file("data.csv", infer_schema_length=-1)     # scan all rows
+
+# Control automatic date parsing (on by default for CSV)
+report = unf_file("data.csv", parse_dates=False)
+
 
 # Use a JSON Schema to override type inference
 report = unf_file("data.csv", schema="schema.json")  # file path

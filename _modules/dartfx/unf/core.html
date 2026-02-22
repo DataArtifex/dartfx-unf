@@ -481,6 +481,7 @@
     <span class="n">suffix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">infer_schema_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
+    <span class="n">parse_dates</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Yield successive ``DataFrame`` batches from *path*.</span>
 
@@ -490,7 +491,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="n">_CSV_EXTENSIONS</span><span class="p">:</span>
         <span class="k">yield from</span> <span class="n">_iter_batches_csv</span><span class="p">(</span>
-            <span class="n">path</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">_get_separator</span><span class="p">(</span><span class="n">suffix</span><span class="p">),</span> <span class="n">infer_schema_length</span>
+            <span class="n">path</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">_get_separator</span><span class="p">(</span><span class="n">suffix</span><span class="p">),</span> <span class="n">infer_schema_length</span><span class="p">,</span> <span class="n">parse_dates</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">yield from</span> <span class="n">_iter_batches_parquet</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
@@ -501,6 +502,7 @@
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">separator</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">infer_schema_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
+    <span class="n">parse_dates</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Yield CSV row batches via ``pl.scan_csv().collect_batches()``.</span>
 
@@ -513,6 +515,7 @@
         <span class="n">path</span><span class="p">,</span>
         <span class="n">separator</span><span class="o">=</span><span class="n">separator</span><span class="p">,</span>
         <span class="n">infer_schema_length</span><span class="o">=</span><span class="n">schema_length</span><span class="p">,</span>
+        <span class="n">try_parse_dates</span><span class="o">=</span><span class="n">parse_dates</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">yield from</span> <span class="n">lf</span><span class="o">.</span><span class="n">collect_batches</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
 
@@ -768,6 +771,7 @@
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_BATCH_SIZE</span><span class="p">,</span>
     <span class="n">infer_schema_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
     <span class="n">schema</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">parse_dates</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UNFReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the UNF fingerprint for a CSV or Parquet data file.</span>
 
@@ -798,6 +802,8 @@
 <span class="sd">        - Inline JSON Schema string</span>
 <span class="sd">        - Dictionary mapping column names to JSON Schema type names</span>
 <span class="sd">        User-specified types take precedence over inferred types.</span>
+<span class="sd">    parse_dates : bool, default True</span>
+<span class="sd">        If True, attempt to auto-parse date and datetime columns in CSV files.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -842,12 +848,19 @@
             <span class="s2">&quot;Processing </span><span class="si">%s</span><span class="s2"> in streaming mode (batch_size=</span><span class="si">%d</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">batch_size</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">_unf_file_streaming</span><span class="p">(</span>
-            <span class="n">path</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">infer_schema_length</span><span class="p">,</span> <span class="n">parsed_schema</span>
+            <span class="n">path</span><span class="p">,</span>
+            <span class="n">suffix</span><span class="p">,</span>
+            <span class="n">params</span><span class="p">,</span>
+            <span class="n">label</span><span class="p">,</span>
+            <span class="n">batch_size</span><span class="p">,</span>
+            <span class="n">infer_schema_length</span><span class="p">,</span>
+            <span class="n">parsed_schema</span><span class="p">,</span>
+            <span class="n">parse_dates</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Processing </span><span class="si">%s</span><span class="s2"> in-memory&quot;</span><span class="p">,</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">_unf_file_memory</span><span class="p">(</span>
-        <span class="n">path</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">infer_schema_length</span><span class="p">,</span> <span class="n">parsed_schema</span>
+        <span class="n">path</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">infer_schema_length</span><span class="p">,</span> <span class="n">parsed_schema</span><span class="p">,</span> <span class="n">parse_dates</span>
     <span class="p">)</span></div>
 
 
@@ -859,6 +872,7 @@
     <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">infer_schema_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
     <span class="n">user_schema</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">parse_dates</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UNFReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Process a file entirely in memory with parallel column hashing.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.parquet&quot;</span><span class="p">:</span>
@@ -867,7 +881,10 @@
         <span class="c1"># -1 means scan all rows, so pass None to Polars</span>
         <span class="n">schema_length</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">infer_schema_length</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="k">else</span> <span class="n">infer_schema_length</span>
         <span class="n">df</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
-            <span class="n">path</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="n">_get_separator</span><span class="p">(</span><span class="n">suffix</span><span class="p">),</span> <span class="n">infer_schema_length</span><span class="o">=</span><span class="n">schema_length</span>
+            <span class="n">path</span><span class="p">,</span>
+            <span class="n">separator</span><span class="o">=</span><span class="n">_get_separator</span><span class="p">(</span><span class="n">suffix</span><span class="p">),</span>
+            <span class="n">infer_schema_length</span><span class="o">=</span><span class="n">schema_length</span><span class="p">,</span>
+            <span class="n">try_parse_dates</span><span class="o">=</span><span class="n">parse_dates</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="c1"># Apply schema overrides if provided</span>
@@ -886,6 +903,7 @@
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">infer_schema_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
     <span class="n">user_schema</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">parse_dates</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UNFReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Process a file in streaming mode using incremental SHA-256 hashers.</span>
 
@@ -902,7 +920,7 @@
 
     <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">()</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">_batch_idx</span><span class="p">,</span> <span class="n">batch_df</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
-            <span class="n">_iter_batches</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">infer_schema_length</span><span class="p">)</span>
+            <span class="n">_iter_batches</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">infer_schema_length</span><span class="p">,</span> <span class="n">parse_dates</span><span class="p">)</span>
         <span class="p">):</span>
             <span class="n">batch_rows</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch_df</span><span class="p">)</span>
 
@@ -981,6 +999,7 @@
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_BATCH_SIZE</span><span class="p">,</span>
     <span class="n">infer_schema_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
     <span class="n">schema</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">parse_dates</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UNFReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the combined UNF of multiple files (e.g. a partitioned dataset).</span>
 
@@ -1004,6 +1023,8 @@
 <span class="sd">    schema : str, Path, dict, or None</span>
 <span class="sd">        Optional schema specification to override type inference for all files.</span>
 <span class="sd">        Same format as in ``unf_file()``.</span>
+<span class="sd">    parse_dates : bool, default True</span>
+<span class="sd">        If True, attempt to auto-parse date and datetime columns in CSV files.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -1030,6 +1051,7 @@
             <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
             <span class="n">infer_schema_length</span><span class="o">=</span><span class="n">infer_schema_length</span><span class="p">,</span>
             <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
+            <span class="n">parse_dates</span><span class="o">=</span><span class="n">parse_dates</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">result</span><span class="p">,</span> <span class="n">FileResult</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">report</span><span class="o">.</span><span class="n">result</span>
@@ -1064,6 +1086,7 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">params</span><span class="p">:</span> <span class="n">UNFParameters</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">parse_dates</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UNFReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the UNF from raw file bytes.</span>
 
@@ -1077,13 +1100,17 @@
 <span class="sd">        Calculation parameters.</span>
 <span class="sd">    label : str, optional</span>
 <span class="sd">        A human-readable label for the report.</span>
+<span class="sd">    parse_dates : bool, default True</span>
+<span class="sd">        If True, attempt to auto-parse date and datetime columns in CSV datasets.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    UNFReport</span>
 <span class="sd">        A structured UNF report.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">unf_from_stream</span><span class="p">(</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="nb">format</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">unf_from_stream</span><span class="p">(</span>
+        <span class="n">BytesIO</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="nb">format</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span> <span class="n">parse_dates</span><span class="o">=</span><span class="n">parse_dates</span>
+    <span class="p">)</span></div>
 
 
 
@@ -1095,6 +1122,7 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">params</span><span class="p">:</span> <span class="n">UNFParameters</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">parse_dates</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UNFReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the UNF from a file-like object.</span>
 
@@ -1108,6 +1136,8 @@
 <span class="sd">        Calculation parameters.</span>
 <span class="sd">    label : str, optional</span>
 <span class="sd">        A human-readable label for the report.</span>
+<span class="sd">    parse_dates : bool, default True</span>
+<span class="sd">        If True, attempt to auto-parse date and datetime columns in CSV streams.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -1117,7 +1147,9 @@
     <span class="k">if</span> <span class="nb">format</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;parquet&quot;</span><span class="p">:</span>
         <span class="n">df</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">read_parquet</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
     <span class="k">elif</span> <span class="nb">format</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;csv&quot;</span><span class="p">:</span>
-        <span class="n">df</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">infer_schema_length</span><span class="o">=</span><span class="mi">10_000</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+            <span class="n">stream</span><span class="p">,</span> <span class="n">infer_schema_length</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span> <span class="n">try_parse_dates</span><span class="o">=</span><span class="n">parse_dates</span>
+        <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Unsupported format: </span><span class="si">{</span><span class="nb">format</span><span class="si">!r}</span><span class="s2">. Use &#39;csv&#39; or &#39;parquet&#39;.&quot;</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>

@@ -68,8 +68,12 @@ Calculate fingerprints directly from your terminal:
 # Basic JSON report
 uv run dartfx-unf data.parquet
 
+# Disable automatic date parsing for CSVs
+uv run dartfx-unf --no-parse-date data.csv
+
 # Quiet mode (just the hash)
 uv run dartfx-unf --quiet data.parquet
+
 
 # Detailed summary table
 uv run dartfx-unf --verbose file1.csv file2.parquet

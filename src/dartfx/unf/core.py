@@ -394,6 +394,7 @@ def _iter_batches(
     suffix: str,
     batch_size: int,
     infer_schema_length: int = 10_000,
+    parse_dates: bool = True,
 ) -> Iterator[pl.DataFrame]:
     """Yield successive ``DataFrame`` batches from *path*.
 
@@ -403,7 +404,7 @@ def _iter_batches(
     """
     if suffix in _CSV_EXTENSIONS:
         yield from _iter_batches_csv(
-            path, batch_size, _get_separator(suffix), infer_schema_length
+            path, batch_size, _get_separator(suffix), infer_schema_length, parse_dates
         )
     else:
         yield from _iter_batches_parquet(path, batch_size)
@@ -414,6 +415,7 @@ def _iter_batches_csv(
     batch_size: int,
     separator: str,
     infer_schema_length: int = 10_000,
+    parse_dates: bool = True,
 ) -> Iterator[pl.DataFrame]:
     """Yield CSV row batches via ``pl.scan_csv().collect_batches()``.
 
@@ -426,6 +428,7 @@ def _iter_batches_csv(
         path,
         separator=separator,
         infer_schema_length=schema_length,
+        try_parse_dates=parse_dates,
     )
     yield from lf.collect_batches(chunk_size=batch_size)
 
@@ -679,6 +682,7 @@ def unf_file(
     batch_size: int = DEFAULT_BATCH_SIZE,
     infer_schema_length: int = 10_000,
     schema: str | Path | dict[str, str] | None = None,
+    parse_dates: bool = True,
 ) -> UNFReport:
     """Compute the UNF fingerprint for a CSV or Parquet data file.
 
@@ -709,6 +713,8 @@ def unf_file(
         - Inline JSON Schema string
         - Dictionary mapping column names to JSON Schema type names
         User-specified types take precedence over inferred types.
+    parse_dates : bool, default True
+        If True, attempt to auto-parse date and datetime columns in CSV files.
 
     Returns
     -------
@@ -753,12 +759,19 @@ def unf_file(
             "Processing %s in streaming mode (batch_size=%d)", path.name, batch_size
         )
         return _unf_file_streaming(
-            path, suffix, params, label, batch_size, infer_schema_length, parsed_schema
+            path,
+            suffix,
+            params,
+            label,
+            batch_size,
+            infer_schema_length,
+            parsed_schema,
+            parse_dates,
         )
 
     logger.info("Processing %s in-memory", path.name)
     return _unf_file_memory(
-        path, suffix, params, label, infer_schema_length, parsed_schema
+        path, suffix, params, label, infer_schema_length, parsed_schema, parse_dates
     )
 
 
@@ -769,6 +782,7 @@ def _unf_file_memory(
     label: str | None,
     infer_schema_length: int = 10_000,
     user_schema: dict[str, str] | dict[str, dict] | None = None,
+    parse_dates: bool = True,
 ) -> UNFReport:
     """Process a file entirely in memory with parallel column hashing."""
     if suffix == ".parquet":
@@ -777,7 +791,10 @@ def _unf_file_memory(
         # -1 means scan all rows, so pass None to Polars
         schema_length = None if infer_schema_length == -1 else infer_schema_length
         df = pl.read_csv(
-            path, separator=_get_separator(suffix), infer_schema_length=schema_length
+            path,
+            separator=_get_separator(suffix),
+            infer_schema_length=schema_length,
+            try_parse_dates=parse_dates,
         )
 
     # Apply schema overrides if provided
@@ -796,6 +813,7 @@ def _unf_file_streaming(
     batch_size: int,
     infer_schema_length: int = 10_000,
     user_schema: dict[str, str] | dict[str, dict] | None = None,
+    parse_dates: bool = True,
 ) -> UNFReport:
     """Process a file in streaming mode using incremental SHA-256 hashers.
 
@@ -812,7 +830,7 @@ def _unf_file_streaming(
 
     with ThreadPoolExecutor() as executor:
         for _batch_idx, batch_df in enumerate(
-            _iter_batches(path, suffix, batch_size, infer_schema_length)
+            _iter_batches(path, suffix, batch_size, infer_schema_length, parse_dates)
         ):
             batch_rows = len(batch_df)
 
@@ -889,6 +907,7 @@ def unf_dataset(
     batch_size: int = DEFAULT_BATCH_SIZE,
     infer_schema_length: int = 10_000,
     schema: str | Path | dict[str, str] | None = None,
+    parse_dates: bool = True,
 ) -> UNFReport:
     """Compute the combined UNF of multiple files (e.g. a partitioned dataset).
 
@@ -912,6 +931,8 @@ def unf_dataset(
     schema : str, Path, dict, or None
         Optional schema specification to override type inference for all files.
         Same format as in ``unf_file()``.
+    parse_dates : bool, default True
+        If True, attempt to auto-parse date and datetime columns in CSV files.
 
     Returns
     -------
@@ -938,6 +959,7 @@ def unf_dataset(
             batch_size=batch_size,
             infer_schema_length=infer_schema_length,
             schema=schema,
+            parse_dates=parse_dates,
         )
         assert isinstance(report.result, FileResult)
         return report.result
@@ -969,6 +991,7 @@ def unf_from_bytes(
     *,
     params: UNFParameters | None = None,
     label: str | None = None,
+    parse_dates: bool = True,
 ) -> UNFReport:
     """Compute the UNF from raw file bytes.
 
@@ -982,13 +1005,17 @@ def unf_from_bytes(
         Calculation parameters.
     label : str, optional
         A human-readable label for the report.
+    parse_dates : bool, default True
+        If True, attempt to auto-parse date and datetime columns in CSV datasets.
 
     Returns
     -------
     UNFReport
         A structured UNF report.
     """
-    return unf_from_stream(BytesIO(data), format, params=params, label=label)
+    return unf_from_stream(
+        BytesIO(data), format, params=params, label=label, parse_dates=parse_dates
+    )
 
 
 def unf_from_stream(
@@ -997,6 +1024,7 @@ def unf_from_stream(
     *,
     params: UNFParameters | None = None,
     label: str | None = None,
+    parse_dates: bool = True,
 ) -> UNFReport:
     """Compute the UNF from a file-like object.
 
@@ -1010,6 +1038,8 @@ def unf_from_stream(
         Calculation parameters.
     label : str, optional
         A human-readable label for the report.
+    parse_dates : bool, default True
+        If True, attempt to auto-parse date and datetime columns in CSV streams.
 
     Returns
     -------
@@ -1019,7 +1049,9 @@ def unf_from_stream(
     if format.lower() == "parquet":
         df = pl.read_parquet(stream)
     elif format.lower() == "csv":
-        df = pl.read_csv(stream, infer_schema_length=10_000)
+        df = pl.read_csv(
+            stream, infer_schema_length=10_000, try_parse_dates=parse_dates
+        )
     else:
         msg = f"Unsupported format: {format!r}. Use 'csv' or 'parquet'."
         raise ValueError(msg)

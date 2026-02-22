@@ -1,7 +1,7 @@
 {
   "unf_version": "6",
   "metadata": {
-    "timestamp": "2026-02-18T01:39:16.408230+00:00",
+    "timestamp": "2026-02-22T18:11:04.232140+00:00",
     "parameters": {
       "N": 7,
       "X": 128,
@@ -34,7 +34,7 @@
       {
         "name": "dob",
         "unf": "UNF:6:PH+jFA4u+yJSs1sIw64dyw==",
-        "type": "string"
+        "type": "date"
       },
       {
         "name": "income",

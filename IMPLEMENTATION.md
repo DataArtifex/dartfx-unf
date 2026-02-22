@@ -99,6 +99,8 @@ The following features have been successfully integrated:
 5. **Human-Friendly CLI**: Added `-v/--verbose` for summary tables and `--validate` to ensure JSON output correctness.
 6. **Macro-Benchmarking & CI**: Automated performance tracking with `benchmarks/macro.py` measuring throughput (~160k rows/s) and memory efficiency, integrated into GitHub Actions.
 7. **Spec Completeness**: Added Bit Field normalization (§Ia.4) and fixed critical precision bugs in `Decimal` quantization for integers exceeding $2^{60}$.
+8. **Automatic Date Parsing**: Enabled `parse_dates=True` by default for CSV reading, improving the default UNF accuracy for temporal data without requiring explicit schema definitions.
+
 
 ## Roadmap & Phases
 

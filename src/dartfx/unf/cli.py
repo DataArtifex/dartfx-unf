@@ -124,6 +124,22 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="SCHEMA",
         help="JSON Schema file or inline JSON for type overrides.",
     )
+
+    # --- date parsing ---
+    date_group = parser.add_mutually_exclusive_group()
+    date_group.add_argument(
+        "--parse-date",
+        dest="parse_date",
+        action="store_true",
+        default=True,
+        help="Attempt to auto-parse dates in CSV files (default: True).",
+    )
+    date_group.add_argument(
+        "--no-parse-date",
+        dest="parse_date",
+        action="store_false",
+        help="Disable automatic date parsing.",
+    )
     return parser
 
 
@@ -168,6 +184,7 @@ def main(argv: list[str] | None = None) -> int:
             batch_size=args.batch_size,
             infer_schema_length=args.scan_length,
             schema=args.schema,
+            parse_dates=args.parse_date,
         )
     else:
         report = unf_dataset(
@@ -178,6 +195,7 @@ def main(argv: list[str] | None = None) -> int:
             batch_size=args.batch_size,
             infer_schema_length=args.scan_length,
             schema=args.schema,
+            parse_dates=args.parse_date,
         )
 
     if args.verbose:

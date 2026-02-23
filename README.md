@@ -18,8 +18,6 @@ Built on top of the **Polars** engine, it provides native support for massive da
 
 *This package was vibe coded with Claude Opus 4.6 and Gemini 3 Flash.*
 
----
-
 ## Key Features
 
 - ✅ **Full Compliance**: Implements the complete UNF v6 spec (Numeric, String, Date/Time, Bit Fields, and Booleans).
@@ -29,7 +27,6 @@ Built on top of the **Polars** engine, it provides native support for massive da
 - 📋 **Structured Reporting**: Generates detailed JSON reports compliant with a built-in schema.
 - 🔗 **Dataset Hashing**: Combine fingerprints from multiple files into a single dataset-level hash.
 
----
 
 ## Installation
 
@@ -55,8 +52,6 @@ git clone https://github.com/DataArtifex/dartfx-unf.git
 cd dartfx-unf
 uv sync
 ```
-
----
 
 ## Quick Start
 
@@ -96,7 +91,6 @@ json_report = report.to_json(validate=True)
 
 > 📚 **Documentation**: Complete documentation is accessible at [http://dataartifex.org/docs/dartfx-unf](https://dataartifex.org/docs/dartfx-unf)
 
----
 
 ## Why Polars?
 
@@ -106,7 +100,94 @@ To meet the high-performance and "streaming" requirements of modern data science
 - **Lazy Execution**: Optimizes I/O and computation order.
 - **Memory Efficiency**: Polars' streaming mode allows us to hash files that are larger than the available RAM.
 
----
+
+## UNF in Practice
+
+The UNF algorithm is **format-agnostic** and **column-order invariant**. It ensures that identical dataset values produce the same fingerprint regardless of how they are stored.
+
+### Example: Basic Atomic Values
+
+UNF can be used to calculate a fingerprint for a single value (a "vector" of one element). Identical values across different types (e.g., Integer vs Float) or representations (e.g., Date vs String) results in consistent hashes when normalized according to the specification.
+
+| Data Type | Value | Normalized Form (§Ia) | Resulting UNF |
+|---|---|---|---|
+| **Numeric** | `1` / `1.0` | `+1.e+` | `UNF:6:tv3XYCv524AfmlFyVOhuZg==` |
+| **Numeric** | `0` / `-0.0` | `+0.e+` / `-0.e+` | *See spec for sign details* |
+| **String** | `"A character String"` | `"A character String\n\0"` | `UNF:6:FYqU7uBl885eHMbpco1ooA==` |
+| **Date** | `2014-01-13` | `"2014-01-13\n\0"` | `UNF:6:PH+jFA4u+yJSs1sIw64dyw==` |
+| **Boolean** | `true` | `+1.e+` | `UNF:6:tv3XYCv524AfmlFyVOhuZg==` |
+
+
+### Example: Data & Format Invariance
+
+The UNF remains identical even if we swap the column order or change the storage format (e.g., from CSV to Parquet).
+
+**dataset_v1.csv**:
+```csv
+id,name,sex,dob,income
+1,Alice,F,2007-01-12,75000
+2,Bob,M,1985-05-15,160000
+3,Charlie,M,1992-08-20,50000
+```
+
+**dataset_v2.csv** (Columns reordered):
+```csv
+id,income,dob,name,sex
+1,75000,2007-01-12,Alice,F
+2,160000,1985-05-15,Bob,M
+3,50000,1992-08-20,Charlie,M
+```
+
+All variations yield the same fingerprint:
+```bash
+# Original CSV
+$ uv run dartfx-unf --quiet dataset_v1.csv
+UNF:6:/iH9nCE4fZqn1rBrrsOc7w==
+
+# CSV with different column order
+$ uv run dartfx-unf --quiet dataset_v2.csv
+UNF:6:/iH9nCE4fZqn1rBrrsOc7w==
+
+# Binary Parquet version of the same data
+$ uv run dartfx-unf --quiet dataset_v1.parquet
+UNF:6:/iH9nCE4fZqn1rBrrsOc7w==
+```
+
+> 💡 **Note**: If you change the **row order**, the UNF *will* change, as the sequence of observations is significant.
+
+### Example: Variable (Column) UNFs
+
+You can inspect the fingerprints of individual variables. This is useful for identifying which specific column changed between two versions of a dataset.
+
+```bash
+$ uv run dartfx-unf --verbose dataset_v1.csv
+```
+
+**Output:**
+```text
+COLUMN                         | TYPE         | UNF
+--------------------------------------------------------------------------------
+id                             | numeric      | UNF:6:AvELPR5QTaBbnq6S22Msow==
+name                           | string       | UNF:6:G3RHxSQPXELRGHIJ+FV6qA==
+sex                            | string       | UNF:6:VSDSXcRD7ShBmQqv1WR9EA==
+dob                            | date         | UNF:6:PH+jFA4u+yJSs1sIw64dyw==
+income                         | numeric      | UNF:6:v/5E9kHI79TVvlGYinvxTQ==
+```
+
+### Example: Choosing Precision
+
+You can customize the normalization parameters (digits of precision, hash bits, etc.). Changes to these parameters are automatically encoded in the resulting UNF header:
+
+```bash
+# Standard 7-digit precision (Default)
+$ uv run dartfx-unf --quiet dataset_v1.csv
+UNF:6:/iH9nCE4fZqn1rBrrsOc7w==
+
+# Higher 9-digit precision
+$ uv run dartfx-unf --quiet --digits 9 dataset_v1.csv
+UNF:6:N9:NvK8CwEepCVQZdjiFCGf2A==
+```
+
 
 ## Contributing
 

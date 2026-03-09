@@ -105,7 +105,7 @@ class UNFReport:
                     "R1_truncate" if self.params.truncate else "IEEE_754_nearest_even"
                 ),
             },
-            "options": self.options,
+            "options": _prune_empty(self.options),
             "software": {
                 "name": "dartfx-unf",
                 "version": __version__,
@@ -150,6 +150,6 @@ def _prune_empty(d: dict[str, Any]) -> dict[str, Any]:
             pruned[k] = [
                 _prune_empty(item) if isinstance(item, dict) else item for item in v
             ]
-        elif v != "":
+        elif v != "" or isinstance(v, bool):
             pruned[k] = v
     return pruned

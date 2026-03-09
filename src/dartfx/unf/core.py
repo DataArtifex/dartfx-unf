@@ -28,7 +28,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, time, timedelta
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, BinaryIO, cast
+from typing import TYPE_CHECKING, Any, BinaryIO, Literal, cast
 
 import polars as pl
 
@@ -385,26 +385,34 @@ def _validate_suffix(suffix: str) -> None:
         raise ValueError(msg)
 
 
-def _detect_leading_zeros_in_csv(
+def _detect_csv_overrides(
     path: Path,
     separator: str,
     infer_schema_length: int,
+    detect_leading_zeros: bool,
+    detect_null_strings: bool,
 ) -> dict[str, str]:
-    """Detect columns with integer-like leading zeros in a CSV file.
+    """Detect columns that should be forced to string in a CSV file.
 
-    Returns a mapping of column names to "string" for any column that
-    should be treated as a string to preserve leading zeros.
+    Checks the first `infer_schema_length` rows for:
+    - Integer-like leading zeros (if `detect_leading_zeros=True`)
+    - Null values in any column (if `detect_null_strings=True`)
+
+    Returns a mapping of column names to "string" for overrides.
     """
     if infer_schema_length == 0:
         return {}
 
-    # Read a sample of rows as strings to check for leading zeros.
+    if not detect_leading_zeros and not detect_null_strings:
+        return {}
+
+    # Read a sample of rows as strings to check for overrides.
     # We align this with the user-provided infer_schema_length.
     sample_size = None if infer_schema_length == -1 else infer_schema_length
 
     try:
         # We use pl.read_csv with infer_schema_length=0 to read as strings.
-        # This is fast for a small sample.
+        # This is fast for a small sample and preserves leading zeros.
         df_sample = pl.read_csv(
             path,
             separator=separator,
@@ -418,12 +426,22 @@ def _detect_leading_zeros_in_csv(
     overrides: dict[str, str] = {}
     for col in df_sample.columns:
         series = df_sample.get_column(col)
+        is_string_override = False
 
-        # We look for a pattern: starts with '0', followed by digits, and has more
-        # than 1 digit in total (e.g. "01" but not "0").
-        # Regex: ^0[0-9]+$ matches strings consisting only of a leading zero
-        # followed by one or more digits.
-        if series.str.contains(r"^0[0-9]+$").any():
+        if detect_leading_zeros:
+            # We look for a pattern: starts with '0', followed by digits, and has more
+            # than 1 digit in total (e.g. "01" but not "0").
+            # Regex: ^0[0-9]+$ matches strings consisting only of a leading zero
+            # followed by one or more digits.
+            if series.str.contains(r"^0[0-9]+$").any():
+                is_string_override = True
+
+        if not is_string_override and detect_null_strings:
+            # Because infer_schema_length=0 treats empty fields as null strings
+            if series.null_count() > 0:
+                is_string_override = True
+
+        if is_string_override:
             overrides[col] = "string"
 
     return overrides
@@ -769,6 +787,7 @@ def unf_file(
     schema: str | Path | dict[str, Any] | None = None,
     parse_dates: bool = True,
     detect_leading_zeros: bool = False,
+    null_handling: Literal["null-as-null", "null-as-string"] = "null-as-null",
 ) -> UNFReport:
     """Compute the UNF fingerprint for a CSV or Parquet data file.
 
@@ -839,14 +858,18 @@ def unf_file(
         parse_schema_input(schema, return_full_schema=True) if schema else {}
     )
 
-    # Auto-detect leading zeros for CSV files to preserve them as strings
-    if detect_leading_zeros and suffix in _CSV_EXTENSIONS:
-        lz_overrides = _detect_leading_zeros_in_csv(
-            path, _get_separator(suffix), infer_schema_length
+    # Auto-detect overrides for CSV files (leading zeros, null-as-string)
+    if suffix in _CSV_EXTENSIONS:
+        csv_overrides = _detect_csv_overrides(
+            path,
+            _get_separator(suffix),
+            infer_schema_length,
+            detect_leading_zeros,
+            null_handling == "null-as-string",
         )
-        if lz_overrides:
+        if csv_overrides:
             # Merge: user-provided schema wins
-            for col in lz_overrides:
+            for col in csv_overrides:
                 if parsed_schema is None or col not in parsed_schema:
                     if parsed_schema is None:
                         parsed_schema = {}
@@ -865,6 +888,15 @@ def unf_file(
     if streaming is None:
         streaming = should_stream(path)
 
+    if streaming and null_handling == "null-as-string" and suffix in _STAT_EXTENSIONS:
+        logger.warning(
+            "Streaming is strictly disabled for %s files when using "
+            "'null-as-strings' in order to guarantee correct null inferences. "
+            "Forcing in-memory mode.",
+            suffix,
+        )
+        streaming = False
+
     if streaming:
         logger.info(
             "Processing %s in streaming mode (batch_size=%d)", path.name, batch_size
@@ -879,6 +911,7 @@ def unf_file(
             parsed_schema,
             parse_dates,
             polars_overrides,
+            null_handling,
         )
     else:
         logger.info("Processing %s in-memory", path.name)
@@ -891,6 +924,7 @@ def unf_file(
             parsed_schema,
             parse_dates,
             polars_overrides,
+            null_handling,
         )
 
     report.options = {
@@ -899,6 +933,7 @@ def unf_file(
         "infer_schema_length": infer_schema_length,
         "parse_dates": parse_dates,
         "detect_leading_zeros": detect_leading_zeros,
+        "null_handling": null_handling,
     }
     return report
 
@@ -912,10 +947,19 @@ def _unf_file_memory(
     user_schema: dict[str, str] | dict[str, dict[str, Any]] | None = None,
     parse_dates: bool = True,
     polars_overrides: dict[str, pl.DataType] | None = None,
+    null_handling: str = "default",
 ) -> UNFReport:
     """Process a file entirely in memory with parallel column hashing."""
     if polars_overrides is None:
         polars_overrides = {}
+
+    if null_handling == "null-as-string" and suffix == ".parquet":
+        # Fast metadata check for Parquet files before streaming
+        lf = pl.scan_parquet(path)
+        null_counts = lf.select(pl.all().null_count()).collect().row(0)
+        for col, count in zip(lf.columns, null_counts, strict=True):
+            if count > 0 and lf.schema[col] != pl.String:
+                polars_overrides[col] = pl.String()
 
     if suffix == ".parquet":
         df = pl.read_parquet(path)
@@ -923,7 +967,7 @@ def _unf_file_memory(
         read_func = _get_pyreadstat_func(suffix)
         pd_df, _meta = read_func(path)
         df = pl.from_pandas(pd_df)
-    else:
+    else:  # CSV and other text-based formats
         # -1 means scan all rows, so pass None to Polars
         schema_length = None if infer_schema_length == -1 else infer_schema_length
         df = pl.read_csv(
@@ -937,6 +981,16 @@ def _unf_file_memory(
     # Apply schema overrides if provided
     if user_schema:
         df = _apply_schema_to_dataframe(df, user_schema)
+
+    if null_handling == "null-as-string":
+        null_counts = df.select(pl.all().null_count()).row(0)
+        null_cols = [
+            col
+            for col, count in zip(df.columns, null_counts, strict=True)
+            if count > 0 and df[col].dtype != pl.String
+        ]
+        if null_cols:
+            df = df.cast(dict.fromkeys(null_cols, pl.String))
 
     report = unf_dataframe(df, params=params, label=label or path.name)
     return report
@@ -952,6 +1006,7 @@ def _unf_file_streaming(
     user_schema: dict[str, str] | dict[str, dict[str, Any]] | None = None,
     parse_dates: bool = True,
     polars_overrides: dict[str, pl.DataType] | None = None,
+    null_handling: Literal["null-as-null", "null-as-string"] = "null-as-null",
 ) -> UNFReport:
     """Process a file in streaming mode using incremental SHA-256 hashers.
 
@@ -968,6 +1023,14 @@ def _unf_file_streaming(
 
     if polars_overrides is None:
         polars_overrides = {}
+
+    if null_handling == "null-as-string" and suffix == ".parquet":
+        # Fast metadata check for Parquet files before streaming
+        lf = pl.scan_parquet(path)
+        null_counts = lf.select(pl.all().null_count()).collect().row(0)
+        for col, count in zip(lf.columns, null_counts, strict=True):
+            if count > 0 and lf.schema[col] != pl.String:
+                polars_overrides[col] = pl.String()
 
     with ThreadPoolExecutor() as executor:
         for _batch_idx, batch_df in enumerate(
@@ -1057,6 +1120,7 @@ def unf_dataset(
     schema: str | Path | dict[str, Any] | None = None,
     parse_dates: bool = True,
     detect_leading_zeros: bool = False,
+    null_handling: Literal["null-as-null", "null-as-string"] = "null-as-null",
 ) -> UNFReport:
     """Compute the combined UNF of multiple files (e.g. a partitioned dataset).
 
@@ -1113,6 +1177,7 @@ def unf_dataset(
             schema=schema,
             parse_dates=parse_dates,
             detect_leading_zeros=detect_leading_zeros,
+            null_handling=null_handling,
         )
         assert isinstance(report.result, FileResult)
         return report.result
@@ -1142,6 +1207,7 @@ def unf_dataset(
         "infer_schema_length": infer_schema_length,
         "parse_dates": parse_dates,
         "detect_leading_zeros": detect_leading_zeros,
+        "null_handling": null_handling,
     }
     return report
 

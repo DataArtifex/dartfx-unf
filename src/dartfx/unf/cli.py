@@ -159,6 +159,24 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_false",
         help="Disable automatic leading zero detection.",
     )
+
+    # --- null handling ---
+    null_group = parser.add_mutually_exclusive_group()
+    null_group.add_argument(
+        "--null-as-strings",
+        dest="null_handling",
+        action="store_const",
+        const="null-as-string",
+        help="Treat columns with null values as strings (Dataverse behavior).",
+    )
+    null_group.add_argument(
+        "--null-as-nulls",
+        dest="null_handling",
+        action="store_const",
+        const="null-as-null",
+        help="Treat nulls as nulls without inferring string (default).",
+    )
+    parser.set_defaults(null_handling="null-as-null")
     return parser
 
 
@@ -205,6 +223,7 @@ def main(argv: list[str] | None = None) -> int:
             schema=args.schema,
             parse_dates=args.parse_date,
             detect_leading_zeros=args.leading_zeros,
+            null_handling=args.null_handling,
         )
     else:
         report = unf_dataset(
@@ -217,6 +236,7 @@ def main(argv: list[str] | None = None) -> int:
             schema=args.schema,
             parse_dates=args.parse_date,
             detect_leading_zeros=args.leading_zeros,
+            null_handling=args.null_handling,
         )
 
     if args.verbose:

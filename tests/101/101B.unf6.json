@@ -12,7 +12,14 @@
       "name": "dartfx-unf",
       "version": "0.2.0"
     },
-    "options": {}
+    "options": {
+      "streaming": false,
+      "batch_size": 100000,
+      "infer_schema_length": 10000,
+      "parse_dates": true,
+      "detect_leading_zeros": false,
+      "null_handling": "null-as-null"
+    }
   },
   "result": {
     "unf": "UNF:6:kBkE4q7GbowX/3tKvDSEWg==",

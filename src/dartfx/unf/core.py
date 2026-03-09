@@ -850,10 +850,18 @@ def unf_file(
                 if parsed_schema is None or col not in parsed_schema:
                     if parsed_schema is None:
                         parsed_schema = {}
-                    parsed_schema[col] = {"type": "string"}
+                    parsed_schema[col] = {"type": "string"}  # type: ignore[assignment,index]
 
     if not parsed_schema:
         parsed_schema = None
+
+    polars_overrides: dict[str, pl.DataType] = {}
+    if parsed_schema:
+        for col_name, col_spec in parsed_schema.items():
+            if isinstance(col_spec, dict) and col_spec.get("type") == "string":
+                polars_overrides[col_name] = pl.String()
+            elif isinstance(col_spec, str) and col_spec == "string":
+                polars_overrides[col_name] = pl.String()
 
     # --- decide processing mode ---
     if streaming is None:
@@ -872,11 +880,19 @@ def unf_file(
             infer_schema_length,
             parsed_schema,
             parse_dates,
+            polars_overrides,
         )
 
     logger.info("Processing %s in-memory", path.name)
     return _unf_file_memory(
-        path, suffix, params, label, infer_schema_length, parsed_schema, parse_dates
+        path,
+        suffix,
+        params,
+        label,
+        infer_schema_length,
+        parsed_schema,
+        parse_dates,
+        polars_overrides,
     )
 
 
@@ -888,16 +904,11 @@ def _unf_file_memory(
     infer_schema_length: int = 10_000,
     user_schema: dict[str, str] | dict[str, dict] | None = None,
     parse_dates: bool = True,
+    polars_overrides: dict[str, pl.DataType] | None = None,
 ) -> UNFReport:
     """Process a file entirely in memory with parallel column hashing."""
-    # Pass string overrides to read_csv to preserve leading zeros
-    polars_overrides = {}
-    if user_schema:
-        for col_name, col_spec in user_schema.items():
-            if isinstance(col_spec, dict) and col_spec.get("type") == "string":
-                polars_overrides[col_name] = pl.Utf8
-            elif isinstance(col_spec, str) and col_spec == "string":
-                polars_overrides[col_name] = pl.Utf8
+    if polars_overrides is None:
+        polars_overrides = {}
 
     if suffix == ".parquet":
         df = pl.read_parquet(path)
@@ -933,6 +944,7 @@ def _unf_file_streaming(
     infer_schema_length: int = 10_000,
     user_schema: dict[str, str] | dict[str, dict] | None = None,
     parse_dates: bool = True,
+    polars_overrides: dict[str, pl.DataType] | None = None,
 ) -> UNFReport:
     """Process a file in streaming mode using incremental SHA-256 hashers.
 
@@ -947,14 +959,8 @@ def _unf_file_streaming(
     column_types: dict[str, str] = {}
     rows_processed = 0
 
-    # Pass string overrides to iter_batches to preserve leading zeros
-    polars_overrides = {}
-    if user_schema:
-        for col_name, col_spec in user_schema.items():
-            if isinstance(col_spec, dict) and col_spec.get("type") == "string":
-                polars_overrides[col_name] = pl.Utf8
-            elif isinstance(col_spec, str) and col_spec == "string":
-                polars_overrides[col_name] = pl.Utf8
+    if polars_overrides is None:
+        polars_overrides = {}
 
     with ThreadPoolExecutor() as executor:
         for _batch_idx, batch_df in enumerate(

@@ -25,23 +25,23 @@ from dartfx.unf.report import FileResult
 class TestMemoryDetection:
     """Verify system memory utilities."""
 
-    def test_get_available_memory_returns_positive(self):
+    def test_get_available_memory_returns_positive(self) -> None:
         mem = get_available_memory()
         assert mem > 0
 
-    def test_get_available_memory_reasonable_range(self):
+    def test_get_available_memory_reasonable_range(self) -> None:
         """Detected memory should be between 128 MB and 16 TB."""
         mem = get_available_memory()
         assert mem >= 128 * 1024 * 1024  # at least 128 MB
         assert mem <= 16 * 1024**4  # at most 16 TB
 
-    def test_should_stream_small_file(self, tmp_path):
+    def test_should_stream_small_file(self, tmp_path: Path) -> None:
         """A tiny file should not trigger streaming."""
         small_file = tmp_path / "small.csv"
         small_file.write_text("a,b\n1,2\n3,4\n")
         assert should_stream(small_file) is False
 
-    def test_should_stream_respects_fraction(self, tmp_path):
+    def test_should_stream_respects_fraction(self, tmp_path: Path) -> None:
         """With a very low fraction, even a small file triggers streaming."""
         small_file = tmp_path / "small.csv"
         small_file.write_text("a,b\n1,2\n3,4\n")
@@ -120,13 +120,13 @@ def date_csv(tmp_path: Path) -> Path:
 class TestStreamingEquivalence:
     """Verify that streaming and in-memory modes produce identical UNFs."""
 
-    def test_csv_streaming_matches_memory(self, sample_csv: Path):
+    def test_csv_streaming_matches_memory(self, sample_csv: Path) -> None:
         report_mem = unf_file(sample_csv, streaming=False)
         report_stream = unf_file(sample_csv, streaming=True, batch_size=3)
 
         assert report_mem.result.unf == report_stream.result.unf
 
-    def test_csv_column_unfs_match(self, sample_csv: Path):
+    def test_csv_column_unfs_match(self, sample_csv: Path) -> None:
         report_mem = unf_file(sample_csv, streaming=False)
         report_stream = unf_file(sample_csv, streaming=True, batch_size=3)
 
@@ -138,13 +138,13 @@ class TestStreamingEquivalence:
 
         assert mem_col_unfs == stream_col_unfs
 
-    def test_parquet_streaming_matches_memory(self, sample_parquet: Path):
+    def test_parquet_streaming_matches_memory(self, sample_parquet: Path) -> None:
         report_mem = unf_file(sample_parquet, streaming=False)
         report_stream = unf_file(sample_parquet, streaming=True, batch_size=10)
 
         assert report_mem.result.unf == report_stream.result.unf
 
-    def test_parquet_column_unfs_match(self, sample_parquet: Path):
+    def test_parquet_column_unfs_match(self, sample_parquet: Path) -> None:
         report_mem = unf_file(sample_parquet, streaming=False)
         report_stream = unf_file(sample_parquet, streaming=True, batch_size=10)
 
@@ -156,20 +156,20 @@ class TestStreamingEquivalence:
 
         assert mem_col_unfs == stream_col_unfs
 
-    def test_dates_streaming_matches_memory(self, date_csv: Path):
+    def test_dates_streaming_matches_memory(self, date_csv: Path) -> None:
         report_mem = unf_file(date_csv, streaming=False)
         report_stream = unf_file(date_csv, streaming=True, batch_size=3)
 
         assert report_mem.result.unf == report_stream.result.unf
 
-    def test_streaming_single_row_batches(self, sample_csv: Path):
+    def test_streaming_single_row_batches(self, sample_csv: Path) -> None:
         """Extreme: 1 row per batch should still produce correct UNF."""
         report_mem = unf_file(sample_csv, streaming=False)
         report_stream = unf_file(sample_csv, streaming=True, batch_size=1)
 
         assert report_mem.result.unf == report_stream.result.unf
 
-    def test_streaming_larger_than_file_batch(self, sample_csv: Path):
+    def test_streaming_larger_than_file_batch(self, sample_csv: Path) -> None:
         """Batch size larger than file should behave like in-memory."""
         report_mem = unf_file(sample_csv, streaming=False)
         report_stream = unf_file(sample_csv, streaming=True, batch_size=1_000_000)
@@ -183,7 +183,7 @@ class TestStreamingEquivalence:
 
 
 class TestStreamingWithParameters:
-    def test_non_default_digits(self, sample_csv: Path):
+    def test_non_default_digits(self, sample_csv: Path) -> None:
         params = UNFParameters(digits=9)
         report_mem = unf_file(sample_csv, params=params, streaming=False)
         report_stream = unf_file(
@@ -192,7 +192,7 @@ class TestStreamingWithParameters:
 
         assert report_mem.result.unf == report_stream.result.unf
 
-    def test_truncation_mode(self, sample_csv: Path):
+    def test_truncation_mode(self, sample_csv: Path) -> None:
         params = UNFParameters(truncate=True)
         report_mem = unf_file(sample_csv, params=params, streaming=False)
         report_stream = unf_file(
@@ -201,7 +201,7 @@ class TestStreamingWithParameters:
 
         assert report_mem.result.unf == report_stream.result.unf
 
-    def test_larger_hash_bits(self, sample_parquet: Path):
+    def test_larger_hash_bits(self, sample_parquet: Path) -> None:
         params = UNFParameters(hash_bits=256)
         report_mem = unf_file(sample_parquet, params=params, streaming=False)
         report_stream = unf_file(
@@ -219,7 +219,7 @@ class TestStreamingWithParameters:
 class TestStreamingLargerData:
     """Test streaming with a moderately-sized dataset."""
 
-    def test_1000_row_csv(self, tmp_path: Path):
+    def test_1000_row_csv(self, tmp_path: Path) -> None:
         n = 1_000
         df = pl.DataFrame(
             {
@@ -236,7 +236,7 @@ class TestStreamingLargerData:
 
         assert report_mem.result.unf == report_stream.result.unf
 
-    def test_1000_row_parquet(self, tmp_path: Path):
+    def test_1000_row_parquet(self, tmp_path: Path) -> None:
         n = 1_000
         df = pl.DataFrame(
             {
@@ -262,13 +262,13 @@ class TestStreamingLargerData:
 class TestAutoDetection:
     """Test the auto-detection logic in unf_file."""
 
-    def test_auto_small_file_uses_memory(self, sample_csv: Path):
+    def test_auto_small_file_uses_memory(self, sample_csv: Path) -> None:
         """A small test file should auto-select in-memory mode."""
         # Just verify it completes successfully — auto mode should pick in-memory.
         report = unf_file(sample_csv)  # streaming=None (auto)
         assert report.result.unf.startswith("UNF:6:")
 
-    def test_explicit_streaming_overrides_auto(self, sample_csv: Path):
+    def test_explicit_streaming_overrides_auto(self, sample_csv: Path) -> None:
         """Explicit streaming=True should work even for small files."""
         report = unf_file(sample_csv, streaming=True, batch_size=2)
         assert report.result.unf.startswith("UNF:6:")

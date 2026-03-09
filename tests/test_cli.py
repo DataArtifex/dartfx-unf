@@ -4,7 +4,7 @@ from pathlib import Path
 from dartfx.unf.cli import main
 
 
-def test_cli_default_parse_dates(tmp_path: Path):
+def test_cli_default_parse_dates(tmp_path: Path) -> None:
     """Test that by default the CLI does not parse dates (changed default)."""
     csv_file = tmp_path / "dates.csv"
     csv_file.write_text("date_col\n2020-01-01\n")
@@ -22,7 +22,7 @@ def test_cli_default_parse_dates(tmp_path: Path):
     assert report["result"]["columns"][0]["type"] == "string"
 
 
-def test_cli_parse_date_flag(tmp_path: Path):
+def test_cli_parse_date_flag(tmp_path: Path) -> None:
     """Test that --parse-date enables date parsing."""
     csv_file = tmp_path / "dates.csv"
     csv_file.write_text("date_col\n2020-01-01\n")
@@ -39,7 +39,7 @@ def test_cli_parse_date_flag(tmp_path: Path):
     assert report["result"]["columns"][0]["type"] == "date"
 
 
-def test_cli_leading_zeros(tmp_path: Path):
+def test_cli_leading_zeros(tmp_path: Path) -> None:
     """Test that --leading-zeros preserves leading zeros as strings."""
     csv_file = tmp_path / "lz.csv"
     csv_file.write_text("code\n0123\n0456\n")
@@ -57,7 +57,7 @@ def test_cli_leading_zeros(tmp_path: Path):
     assert report["result"]["columns"][0]["type"] == "string"
 
 
-def test_cli_no_leading_zeros(tmp_path: Path):
+def test_cli_no_leading_zeros(tmp_path: Path) -> None:
     """Test that --no-leading-zeros overrides explicit leading-zeros if needed."""
     csv_file = tmp_path / "lz.csv"
     csv_file.write_text("code\n0123\n0456\n")

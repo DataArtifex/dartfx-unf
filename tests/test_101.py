@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from dartfx.unf.core import unf_file
+from dartfx.unf.report import FileResult
 
 BASE_DIR = Path(__file__).parent / "101"
 
@@ -16,7 +17,7 @@ DATA_FILES = [
 
 
 @pytest.mark.parametrize("data_file", DATA_FILES, ids=lambda x: x.name)
-def test_101_files(data_file):
+def test_101_files(data_file: Path) -> None:
     # Determine corresponding JSON file containing expected results
     if data_file.suffix == ".parquet":
         json_file = data_file.with_suffix(".unf6-parquet.json")
@@ -43,6 +44,7 @@ def test_101_files(data_file):
     assert result.unf == expected_unf, f"File UNF mismatch for {data_file.name}"
 
     # Assert column UNFs
+    assert isinstance(result, FileResult)
     for col in result.columns:
         if col.name in expected_columns:
             assert col.unf == expected_columns[col.name], (

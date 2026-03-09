@@ -55,6 +55,7 @@ dev = [
   "psutil>=7.2.2",
   "pre-commit>=4.5.1",
   "types-jsonschema>=4.17.0",
+  "pandas-stubs",
 ]
 docs = [
   "sphinx>=7.0.0",
@@ -134,3 +135,9 @@ mypy_path = "src"
 namespace_packages = true
 explicit_package_bases = true
 show_error_codes = true
+warn_unreachable = true
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["pyreadstat", "pyarrow.*"]
+ignore_missing_imports = true

@@ -23,12 +23,12 @@ from __future__ import annotations
 import hashlib
 import logging
 from collections import OrderedDict
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, time, timedelta
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING, BinaryIO, cast
+from typing import TYPE_CHECKING, Any, BinaryIO, cast
 
 import polars as pl
 
@@ -110,7 +110,7 @@ def _normalize_value(
 
     if dtype == pl.Binary:
         assert isinstance(value, bytes | bytearray)
-        return normalize_bit_field(value)
+        return normalize_bit_field(bytes(value))
 
     # Fallback: treat as string
     return normalize_string(str(value), max_chars=params.characters)
@@ -493,25 +493,25 @@ def _iter_batches_parquet(
     batch_size: int,
 ) -> Iterator[pl.DataFrame]:
     """Yield Parquet row batches via ``pyarrow.parquet``."""
-    import pyarrow.parquet as pq  # type: ignore
+    import pyarrow.parquet as pq
 
-    pf = pq.ParquetFile(path)  # type: ignore
+    pf = pq.ParquetFile(path)
     for record_batch in pf.iter_batches(batch_size=batch_size):
         yield cast(pl.DataFrame, pl.from_arrow(record_batch))
 
 
-def _get_pyreadstat_func(suffix: str):
+def _get_pyreadstat_func(suffix: str) -> Callable[..., Any]:
     """Return the appropriate pyreadstat reading function for a suffix."""
     import pyreadstat
 
     if suffix in (".sav", ".zsav"):
-        return pyreadstat.read_sav
+        return cast(Callable[..., Any], pyreadstat.read_sav)
     if suffix == ".dta":
-        return pyreadstat.read_dta
+        return cast(Callable[..., Any], pyreadstat.read_dta)
     if suffix == ".sas7bdat":
-        return pyreadstat.read_sas7bdat
+        return cast(Callable[..., Any], pyreadstat.read_sas7bdat)
     if suffix == ".xpt":
-        return pyreadstat.read_xport
+        return cast(Callable[..., Any], pyreadstat.read_xport)
     raise ValueError(f"Unsupported pyreadstat format: {suffix}")
 
 
@@ -629,7 +629,7 @@ def _parse_string_to_datetime_with_formats(
 
 def _apply_schema_to_dataframe(
     df: pl.DataFrame,
-    user_schema: dict[str, str] | dict[str, dict],
+    user_schema: dict[str, str] | dict[str, dict[str, Any]],
 ) -> pl.DataFrame:
     """Apply user-provided schema overrides to a DataFrame.
 
@@ -645,7 +645,7 @@ def _apply_schema_to_dataframe(
         The DataFrame to apply overrides to.
     user_schema : dict[str, str] or dict[str, dict]
         Mapping of column names to JSON Schema type names (dict[str, str])
-        or full schema objects (dict[str, dict]).
+        or full schema objects (dict[str, dict[str, Any]]).
 
     Returns
     -------
@@ -664,7 +664,7 @@ def _apply_schema_to_dataframe(
 
     # Extract type mapping and schema objects
     column_types: dict[str, str] = {}
-    column_schemas: dict[str, dict] = {}
+    column_schemas: dict[str, dict[str, Any]] = {}
 
     for col_name, col_spec in user_schema.items():
         if isinstance(col_spec, dict):
@@ -766,7 +766,7 @@ def unf_file(
     streaming: bool | None = None,
     batch_size: int = DEFAULT_BATCH_SIZE,
     infer_schema_length: int = 10_000,
-    schema: str | Path | dict[str, str] | None = None,
+    schema: str | Path | dict[str, Any] | None = None,
     parse_dates: bool = True,
     detect_leading_zeros: bool = False,
 ) -> UNFReport:
@@ -850,7 +850,7 @@ def unf_file(
                 if parsed_schema is None or col not in parsed_schema:
                     if parsed_schema is None:
                         parsed_schema = {}
-                    parsed_schema[col] = {"type": "string"}  # type: ignore[assignment,index]
+                    parsed_schema[col] = {"type": "string"}
 
     if not parsed_schema:
         parsed_schema = None
@@ -859,8 +859,6 @@ def unf_file(
     if parsed_schema:
         for col_name, col_spec in parsed_schema.items():
             if isinstance(col_spec, dict) and col_spec.get("type") == "string":
-                polars_overrides[col_name] = pl.String()
-            elif isinstance(col_spec, str) and col_spec == "string":
                 polars_overrides[col_name] = pl.String()
 
     # --- decide processing mode ---
@@ -911,7 +909,7 @@ def _unf_file_memory(
     params: UNFParameters,
     label: str | None,
     infer_schema_length: int = 10_000,
-    user_schema: dict[str, str] | dict[str, dict] | None = None,
+    user_schema: dict[str, str] | dict[str, dict[str, Any]] | None = None,
     parse_dates: bool = True,
     polars_overrides: dict[str, pl.DataType] | None = None,
 ) -> UNFReport:
@@ -951,7 +949,7 @@ def _unf_file_streaming(
     label: str | None,
     batch_size: int,
     infer_schema_length: int = 10_000,
-    user_schema: dict[str, str] | dict[str, dict] | None = None,
+    user_schema: dict[str, str] | dict[str, dict[str, Any]] | None = None,
     parse_dates: bool = True,
     polars_overrides: dict[str, pl.DataType] | None = None,
 ) -> UNFReport:
@@ -1056,7 +1054,7 @@ def unf_dataset(
     streaming: bool | None = None,
     batch_size: int = DEFAULT_BATCH_SIZE,
     infer_schema_length: int = 10_000,
-    schema: str | Path | dict[str, str] | None = None,
+    schema: str | Path | dict[str, Any] | None = None,
     parse_dates: bool = True,
     detect_leading_zeros: bool = False,
 ) -> UNFReport:

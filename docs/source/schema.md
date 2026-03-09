@@ -10,6 +10,10 @@ The `--schema` option allows you to explicitly define data types for columns in 
 - You want to ensure reproducible, deterministic fingerprints
 - Your date or datetime data uses non-ISO 8601 formats
 
+### Compliance & Interoperability
+
+Beyond following the [UNF v6 specification](https://guides.dataverse.org/en/latest/developers/unf/unf-v6.html), `dartfx-unf` aims for full alignment with the [canonical Java Dataverse implementation](https://github.com/IQSS/UNF). Because the specification itself can be subject to interpretation for certain edge cases, the use of explicit schemas or CLI options ensures that you can achieve the desired interoperability while documenting exactly how the fingerprint was computed.
+
 ## Schema Format: JSON Schema
 
 The `dartfx-unf` package uses [JSON Schema](https://json-schema.org/) as its schema specification format. This is a standardized, widely-understood format that integrates well with data pipelines.

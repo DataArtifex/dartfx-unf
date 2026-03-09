@@ -83,6 +83,7 @@ class UNFReport:
     params: UNFParameters = field(default_factory=UNFParameters)
     timestamp: str = ""
     unf_version: str = "6"
+    options: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not self.timestamp:
@@ -104,6 +105,7 @@ class UNFReport:
                     "R1_truncate" if self.params.truncate else "IEEE_754_nearest_even"
                 ),
             },
+            "options": self.options,
             "software": {
                 "name": "dartfx-unf",
                 "version": __version__,

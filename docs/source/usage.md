@@ -39,6 +39,8 @@ uv run dartfx-unf file1.csv file2.parquet file3.tsv
 *   **`--truncate`**: Use truncation (R1) instead of IEEE 754 rounding.
 *   **`--parse-date`**: Attempt to auto-parse dates in CSV files (on by default).
 *   **`--no-parse-date`**: Disable automatic date parsing.
+*   **`--leading-zeros`**: Auto-detect columns with leading zeros (e.g. '01') and treat them as strings to preserve the zeros.
+*   **`--no-leading-zeros`**: Disable automatic leading zero detection (default for performance).
 
 ### Schema Specification
 
@@ -277,4 +279,26 @@ data = report.to_dict()
 
 # Export to a JSON string (optionally validated)
 json_str = report.to_json(validate=True)
+```
+
+### Metadata & Traceability
+
+Every generated report includes a `metadata` section that preserves all calculation parameters and options. This ensures that even if different options result in different UNFs (due to interpretations of ambiguous data), the calculation process remains fully transparent and auditable.
+
+```json
+"metadata": {
+  "timestamp": "2026-03-09T21:18:24Z",
+  "parameters": {
+    "N": 7,
+    "X": 128,
+    "H": 128,
+    "rounding_mode": "IEEE_754_nearest_even"
+  },
+  "options": {
+    "streaming": true,
+    "batch_size": 100000,
+    "parse_dates": true,
+    "detect_leading_zeros": false
+  }
+}
 ```

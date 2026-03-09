@@ -69,6 +69,11 @@
                             "type": "string"
                         }
                     }
+                },
+                "options": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Configuration options used for the run."
                 }
             }
         },

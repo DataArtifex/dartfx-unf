@@ -11,7 +11,7 @@ import sys
 project = "dartfx-unf"
 copyright = "2024, Data Artifex"
 author = "Data Artifex"
-release = "0.1.0"
+release = "0.2.0"
 
 #
 # Add search path for autogen

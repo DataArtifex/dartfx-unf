@@ -871,7 +871,7 @@ def unf_file(
         logger.info(
             "Processing %s in streaming mode (batch_size=%d)", path.name, batch_size
         )
-        return _unf_file_streaming(
+        report = _unf_file_streaming(
             path,
             suffix,
             params,
@@ -882,18 +882,27 @@ def unf_file(
             parse_dates,
             polars_overrides,
         )
+    else:
+        logger.info("Processing %s in-memory", path.name)
+        report = _unf_file_memory(
+            path,
+            suffix,
+            params,
+            label,
+            infer_schema_length,
+            parsed_schema,
+            parse_dates,
+            polars_overrides,
+        )
 
-    logger.info("Processing %s in-memory", path.name)
-    return _unf_file_memory(
-        path,
-        suffix,
-        params,
-        label,
-        infer_schema_length,
-        parsed_schema,
-        parse_dates,
-        polars_overrides,
-    )
+    report.options = {
+        "streaming": streaming,
+        "batch_size": batch_size,
+        "infer_schema_length": infer_schema_length,
+        "parse_dates": parse_dates,
+        "detect_leading_zeros": detect_leading_zeros,
+    }
+    return report
 
 
 def _unf_file_memory(
@@ -1128,7 +1137,15 @@ def unf_dataset(
         label=label or "",
     )
 
-    return UNFReport(result=dataset_result, params=params)
+    report = UNFReport(result=dataset_result, params=params)
+    report.options = {
+        "streaming": streaming,
+        "batch_size": batch_size,
+        "infer_schema_length": infer_schema_length,
+        "parse_dates": parse_dates,
+        "detect_leading_zeros": detect_leading_zeros,
+    }
+    return report
 
 
 def unf_from_bytes(
@@ -1202,4 +1219,9 @@ def unf_from_stream(
         msg = f"Unsupported format: {format!r}. Use 'csv' or 'parquet'."
         raise ValueError(msg)
 
-    return unf_dataframe(df, params=params, label=label or "stream")
+    report = unf_dataframe(df, params=params, label=label or "stream")
+    report.options = {
+        "format": format,
+        "parse_dates": parse_dates,
+    }
+    return report

@@ -10,6 +10,9 @@
 
 **A high-performance Python implementation of the [Universal Numerical Fingerprint (UNF) v6 specification]((https://guides.dataverse.org/en/latest/developers/unf/unf-v6.html)), a format agnostic standard for data fingerprinting.**
 
+> [!WARNING]
+> **Prototype Status**: Full alignment with the UNF v6 specification and the canonical Java Dataverse implementation is still a **work in progress**. This package should be treated as a prototype for evaluation purposes only and is **not for production use** at this time.
+
 ## Overview
 
 `dartfx-unf` is a blazing-fast, memory-efficient calculator for [UNF Version 6](https://guides.dataverse.org/en/latest/developers/unf/unf-v6.html). It ensures that your data remains identifiable and consistent across different software versions, file formats, and operating systems by normalizing and hashing the underlying data values rather than the file itself.
@@ -18,13 +21,24 @@ Built on top of the **Polars** engine, it provides native support for massive da
 
 *This package was vibe coded with Claude Opus 4.6 and Gemini 3 Flash.*
 
+---
+
+### 🛡️ Compliance & Interoperability
+
+The primary goal of `dartfx-unf` is two-fold:
+1.  **Specification Compliance**: strictly follow the [UNF v6 specification](https://guides.dataverse.org/en/latest/developers/unf/unf-v6.html).
+2.  **Canonical Alignment**: ensure full interoperability with the [canonical Java Dataverse implementation](https://github.com/IQSS/UNF).
+
+The Java implementation has produced thousands of persistent fingerprints over the years that cannot be changed. Interoperability is just as critical as compliance.
+
+**Handling Ambiguity**: In cases where the specification can be interpreted in multiple ways, `dartfx-unf` provides configuration options to ensure flexibility. While different options can naturally result in different UNFs, the resulting **JSON reports document every option used** for absolute traceability.
+
 ## Key Features
 
-- ✅ **Full Compliance**: Implements the complete UNF v6 spec (Numeric, String, Date/Time, Bit Fields, and Booleans).
-- 🚀 **Polars-Powered Speed**: Near-C performance using vectorized Rust-based execution.
-- 🧊 **Out-of-Core Streaming**: Process multi-gigabyte files with constant memory overhead.
-- 📦 **Multi-Format**: Native support for Parquet and CSV.
-- 📋 **Structured Reporting**: Generates detailed JSON reports compliant with a built-in schema.
+- ✅ **Out-of-Core Streaming**: Process multi-gigabyte files with constant memory overhead.
+- ✅ **Canonical Alignment (WIP)**: Aims for parity with the Java Dataverse codebase.
+- 📦 **Multi-Format**: Native support for Parquet, CSV, and statistical formats (SAS, Stata, SPSS).
+- 📋 **Structured Reporting**: Generates detailed JSON reports documenting all options for full traceability.
 - 🔗 **Dataset Hashing**: Combine fingerprints from multiple files into a single dataset-level hash.
 
 

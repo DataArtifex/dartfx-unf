@@ -2,6 +2,9 @@
 
 This document describes the architecture, current status, and planned next steps for `dartfx-unf`.
 
+> [!WARNING]
+> **Prototype Status**: This project is currently a **prototype**. Full alignment on the UNF v6 specification and the canonical Java Dataverse implementation is a work in progress. It is intended for **evaluation purposes only** and is not yet suitable for production environments.
+
 ## Architecture
 
 The package follows a layered design that separates concerns cleanly, making it usable as a **library**, a **CLI tool**, or embedded in an **API/MCP server**.
@@ -58,6 +61,10 @@ Input File (.csv / .parquet)
 
 6. **Memory-aware streaming.** `memory.py` detects available system memory (Linux `/proc/meminfo`, macOS `os.sysconf`, Windows `kernel32`). Files larger than 25% of available memory automatically switch to streaming mode, which uses incremental SHA-256 hashers to achieve O(batch_size) memory usage regardless of total file size.
 
+7. **Canonical Alignment.** A primary design constraint is parity with the [Java Dataverse implementation](https://github.com/IQSS/UNF). This ensures that fingerprints computed by `dartfx-unf` match those already residing in data repositories.
+
+8. **Transparency & Options.** When the specification is ambiguous or allows for multiple valid calculation paths, explicit options are provided (e.g., `detect_leading_zeros`). These settings are preserved in the JSON report's `metadata.options` field for full auditability.
+
 ## Current Status
 
 ### Implemented (✅)
@@ -79,6 +86,9 @@ Input File (.csv / .parquet)
 | — | Schema specification | JSON Schema-based type override for CSV data. Supports file paths, inline JSON, and Python dicts. Ensures consistent type handling across systems. |
 | — | Performance | Memory-aware streaming, vectorized normalization, and parallel column/file processing. |
 | — | API | Helpers for DataFrames, bytes, and file-like streams. |
+| — | Statistical Formats | Native support for SAS (.sas7bdat, .xpt), Stata (.dta), and SPSS (.sav, .zsav). |
+| — | Code Preservation | Optional leading zero detection to preserve CSV code lists as strings. |
+| — | Traceability | `metadata.options` in JSON reports to record all calculation settings. |
 | — | Benchmarking | Comprehensive macro-benchmark suite with CI integration. |
 | — | Documentation | Sphinx site with Usage Guide, API Reference, and Spec Summary. |
 | — | QA | Pre-commit hooks with `ruff`, `ruff-format`, and automated linting. |
@@ -100,18 +110,22 @@ The following features have been successfully integrated:
 6. **Macro-Benchmarking & CI**: Automated performance tracking with `benchmarks/macro.py` measuring throughput (~160k rows/s) and memory efficiency, integrated into GitHub Actions.
 7. **Spec Completeness**: Added Bit Field normalization (§Ia.4) and fixed critical precision bugs in `Decimal` quantization for integers exceeding $2^{60}$.
 8. **Automatic Date Parsing**: Enabled `parse_dates=True` by default for CSV reading, improving the default UNF accuracy for temporal data without requiring explicit schema definitions.
+9. **Statistical Format Support**: Integrated `pyreadstat` for native processing of SAS, Stata, and SPSS files, ensuring consistency between statistical packages and raw formats.
+10. **Leading Zero Detection**: Implemented a "code list" protection heuristic that automatically identifies and preserves leading zeros in CSV columns as strings.
+11. **Settings Traceability**: Added an `options` field to JSON reports, recording every parameter (streaming, batch size, etc.) used for the run.
 
 
 ## Roadmap & Phases
 
-### Phase 1: Distribution & Stability (Current)
+### Phase 2: Interoperability & Extensions (Current)
+
+- [x] **Statistical Format Support.** Integrated `pyreadstat` for SAS, Stata, and SPSS.
+- [ ] **JSON/XML Support.** Direct normalization for semi-structured data formats.
+- [ ] **CLI Polish.** Add progress bars for massive streaming operations.
+- [ ] **R Interoperability.** Native R package or binding for verification across R/Python.
+
+### Phase 3: Distribution & Stability
 
 - [ ] **PyPI Publishing.** Set up GitHub Actions workflow for automated releases to PyPI.
 - [ ] **Test Coverage Automation.** Integrated `coverage.py` reports into CI/CD pipeline.
 - [ ] **Type Safety.** Ensure `mypy --strict` passes across the entire codebase.
-
-### Phase 2: Interoperability & Extensions
-
-- [ ] **R/Stata/SPSS/SAS Integration.** Explicit helpers or examples for converting and verifying hashes across statistical environments.
-- [ ] **JSON/XML Support.** Direct normalization for semi-structured data formats.
-- [ ] **CLI Polish.** Add progress bars for massive streaming operations.

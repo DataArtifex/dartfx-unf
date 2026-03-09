@@ -134,14 +134,30 @@ def _build_parser() -> argparse.ArgumentParser:
         "--parse-date",
         dest="parse_date",
         action="store_true",
-        default=True,
-        help="Attempt to auto-parse dates in CSV files (default: True).",
+        default=False,
+        help="Attempt to auto-parse dates in CSV files (default: False).",
     )
     date_group.add_argument(
         "--no-parse-date",
         dest="parse_date",
         action="store_false",
         help="Disable automatic date parsing.",
+    )
+
+    # --- leading zeros ---
+    lz_group = parser.add_mutually_exclusive_group()
+    lz_group.add_argument(
+        "--leading-zeros",
+        dest="leading_zeros",
+        action="store_true",
+        default=False,
+        help="Auto-detect and preserve leading zeros in CSVs (default: False).",
+    )
+    lz_group.add_argument(
+        "--no-leading-zeros",
+        dest="leading_zeros",
+        action="store_false",
+        help="Disable automatic leading zero detection.",
     )
     return parser
 
@@ -188,6 +204,7 @@ def main(argv: list[str] | None = None) -> int:
             infer_schema_length=args.scan_length,
             schema=args.schema,
             parse_dates=args.parse_date,
+            detect_leading_zeros=args.leading_zeros,
         )
     else:
         report = unf_dataset(
@@ -199,6 +216,7 @@ def main(argv: list[str] | None = None) -> int:
             infer_schema_length=args.scan_length,
             schema=args.schema,
             parse_dates=args.parse_date,
+            detect_leading_zeros=args.leading_zeros,
         )
 
     if args.verbose:

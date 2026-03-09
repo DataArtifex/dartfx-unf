@@ -385,6 +385,50 @@ def _validate_suffix(suffix: str) -> None:
         raise ValueError(msg)
 
 
+def _detect_leading_zeros_in_csv(
+    path: Path,
+    separator: str,
+    infer_schema_length: int,
+) -> dict[str, str]:
+    """Detect columns with integer-like leading zeros in a CSV file.
+
+    Returns a mapping of column names to "string" for any column that
+    should be treated as a string to preserve leading zeros.
+    """
+    if infer_schema_length == 0:
+        return {}
+
+    # Read a sample of rows as strings to check for leading zeros.
+    # We align this with the user-provided infer_schema_length.
+    sample_size = None if infer_schema_length == -1 else infer_schema_length
+
+    try:
+        # We use pl.read_csv with infer_schema_length=0 to read as strings.
+        # This is fast for a small sample.
+        df_sample = pl.read_csv(
+            path,
+            separator=separator,
+            n_rows=sample_size,
+            infer_schema_length=0,
+        )
+    except Exception:
+        # If reading fails (e.g. empty file or weird format), skip detection.
+        return {}
+
+    overrides: dict[str, str] = {}
+    for col in df_sample.columns:
+        series = df_sample.get_column(col)
+
+        # We look for a pattern: starts with '0', followed by digits, and has more
+        # than 1 digit in total (e.g. "01" but not "0").
+        # Regex: ^0[0-9]+$ matches strings consisting only of a leading zero
+        # followed by one or more digits.
+        if series.str.contains(r"^0[0-9]+$").any():
+            overrides[col] = "string"
+
+    return overrides
+
+
 # ---------------------------------------------------------------------------
 # Batch iteration
 # ---------------------------------------------------------------------------
@@ -396,6 +440,7 @@ def _iter_batches(
     batch_size: int,
     infer_schema_length: int = 10_000,
     parse_dates: bool = True,
+    schema_overrides: dict[str, pl.DataType] | None = None,
 ) -> Iterator[pl.DataFrame]:
     """Yield successive ``DataFrame`` batches from *path*.
 
@@ -405,7 +450,12 @@ def _iter_batches(
     """
     if suffix in _CSV_EXTENSIONS:
         yield from _iter_batches_csv(
-            path, batch_size, _get_separator(suffix), infer_schema_length, parse_dates
+            path,
+            batch_size,
+            _get_separator(suffix),
+            infer_schema_length,
+            parse_dates,
+            schema_overrides,
         )
     elif suffix in _STAT_EXTENSIONS:
         yield from _iter_batches_stat(path, suffix, batch_size)
@@ -419,6 +469,7 @@ def _iter_batches_csv(
     separator: str,
     infer_schema_length: int = 10_000,
     parse_dates: bool = True,
+    schema_overrides: dict[str, pl.DataType] | None = None,
 ) -> Iterator[pl.DataFrame]:
     """Yield CSV row batches via ``pl.scan_csv().collect_batches()``.
 
@@ -432,6 +483,7 @@ def _iter_batches_csv(
         separator=separator,
         infer_schema_length=schema_length,
         try_parse_dates=parse_dates,
+        schema_overrides=schema_overrides,
     )
     yield from lf.collect_batches(chunk_size=batch_size)
 
@@ -716,6 +768,7 @@ def unf_file(
     infer_schema_length: int = 10_000,
     schema: str | Path | dict[str, str] | None = None,
     parse_dates: bool = True,
+    detect_leading_zeros: bool = False,
 ) -> UNFReport:
     """Compute the UNF fingerprint for a CSV or Parquet data file.
 
@@ -748,6 +801,9 @@ def unf_file(
         User-specified types take precedence over inferred types.
     parse_dates : bool, default True
         If True, attempt to auto-parse date and datetime columns in CSV files.
+    detect_leading_zeros : bool, default False
+        If True, auto-detect columns with leading zeros (e.g. '01') and treat
+        them as strings to preserve the zeros. Disabled by default.
 
     Returns
     -------
@@ -780,8 +836,24 @@ def unf_file(
 
     # Parse and validate schema input with full schema objects (for format support)
     parsed_schema = (
-        parse_schema_input(schema, return_full_schema=True) if schema else None
+        parse_schema_input(schema, return_full_schema=True) if schema else {}
     )
+
+    # Auto-detect leading zeros for CSV files to preserve them as strings
+    if detect_leading_zeros and suffix in _CSV_EXTENSIONS:
+        lz_overrides = _detect_leading_zeros_in_csv(
+            path, _get_separator(suffix), infer_schema_length
+        )
+        if lz_overrides:
+            # Merge: user-provided schema wins
+            for col in lz_overrides:
+                if parsed_schema is None or col not in parsed_schema:
+                    if parsed_schema is None:
+                        parsed_schema = {}
+                    parsed_schema[col] = {"type": "string"}
+
+    if not parsed_schema:
+        parsed_schema = None
 
     # --- decide processing mode ---
     if streaming is None:
@@ -818,6 +890,15 @@ def _unf_file_memory(
     parse_dates: bool = True,
 ) -> UNFReport:
     """Process a file entirely in memory with parallel column hashing."""
+    # Pass string overrides to read_csv to preserve leading zeros
+    polars_overrides = {}
+    if user_schema:
+        for col_name, col_spec in user_schema.items():
+            if isinstance(col_spec, dict) and col_spec.get("type") == "string":
+                polars_overrides[col_name] = pl.Utf8
+            elif isinstance(col_spec, str) and col_spec == "string":
+                polars_overrides[col_name] = pl.Utf8
+
     if suffix == ".parquet":
         df = pl.read_parquet(path)
     elif suffix in _STAT_EXTENSIONS:
@@ -832,6 +913,7 @@ def _unf_file_memory(
             separator=_get_separator(suffix),
             infer_schema_length=schema_length,
             try_parse_dates=parse_dates,
+            schema_overrides=polars_overrides,
         )
 
     # Apply schema overrides if provided
@@ -865,9 +947,25 @@ def _unf_file_streaming(
     column_types: dict[str, str] = {}
     rows_processed = 0
 
+    # Pass string overrides to iter_batches to preserve leading zeros
+    polars_overrides = {}
+    if user_schema:
+        for col_name, col_spec in user_schema.items():
+            if isinstance(col_spec, dict) and col_spec.get("type") == "string":
+                polars_overrides[col_name] = pl.Utf8
+            elif isinstance(col_spec, str) and col_spec == "string":
+                polars_overrides[col_name] = pl.Utf8
+
     with ThreadPoolExecutor() as executor:
         for _batch_idx, batch_df in enumerate(
-            _iter_batches(path, suffix, batch_size, infer_schema_length, parse_dates)
+            _iter_batches(
+                path,
+                suffix,
+                batch_size,
+                infer_schema_length,
+                parse_dates,
+                polars_overrides,
+            )
         ):
             batch_rows = len(batch_df)
 
@@ -945,6 +1043,7 @@ def unf_dataset(
     infer_schema_length: int = 10_000,
     schema: str | Path | dict[str, str] | None = None,
     parse_dates: bool = True,
+    detect_leading_zeros: bool = False,
 ) -> UNFReport:
     """Compute the combined UNF of multiple files (e.g. a partitioned dataset).
 
@@ -970,6 +1069,9 @@ def unf_dataset(
         Same format as in ``unf_file()``.
     parse_dates : bool, default True
         If True, attempt to auto-parse date and datetime columns in CSV files.
+    detect_leading_zeros : bool, default False
+        If True, auto-detect columns with leading zeros (e.g. '01') and treat
+        them as strings to preserve the zeros. Disabled by default.
 
     Returns
     -------
@@ -997,6 +1099,7 @@ def unf_dataset(
             infer_schema_length=infer_schema_length,
             schema=schema,
             parse_dates=parse_dates,
+            detect_leading_zeros=detect_leading_zeros,
         )
         assert isinstance(report.result, FileResult)
         return report.result

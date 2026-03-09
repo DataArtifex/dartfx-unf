@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>dartfx-unf: High-Performance UNF v6 &mdash; dartfx-unf 0.1.0 documentation</title>
+  <title>dartfx-unf: High-Performance UNF v6 &mdash; dartfx-unf 0.2.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/documentation_options.js?v=938c9ccc"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -87,13 +87,22 @@
 <a class="reference external image-reference" href="https://github.com/DataArtifex/dartfx-unf/blob/main/LICENSE.txt"><img alt="License" src="https://img.shields.io/github/license/DataArtifex/dartfx-unf.svg" />
 </a>
 <p><strong>dartfx-unf</strong> is a blazing-fast, memory-efficient Python implementation of the <strong>Universal Number Fingerprint (UNF) v6</strong> specification. Built on the <strong>Polars</strong> engine, it is designed to handle massive datasets with “out-of-core” streaming capabilities.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><strong>Prototype Status</strong>: Full alignment on the UNF v6 specification and the canonical Java Dataverse implementation is a <strong>work in progress</strong>. This package should be treated as a <strong>prototype for evaluation purposes only</strong> and is <strong>not intended for production use</strong> at this time.</p>
+</div>
+<section id="compliance-interoperability">
+<h2>Compliance &amp; Interoperability<a class="headerlink" href="#compliance-interoperability" title="Link to this heading"></a></h2>
+<p>This package aims to both strictly comply with the <strong>UNF v6 specification</strong> and remain fully aligned with the <strong>canonical Java Dataverse implementation</strong> (from <a class="reference external" href="https://github.com/IQSS/UNF">IQSS/UNF</a>).</p>
+<p>Because the Java implementation has produced thousands of persistent fingerprints over many years, maintaining interoperability is a primary design goal. Where the specification is subject to interpretation, <strong>dartfx-unf</strong> provides configuration options for flexibility. All options used for a given run are explicitly documented in the resulting JSON metadata for full auditability and traceability.</p>
+</section>
 <section id="key-features">
 <h2>Key Features<a class="headerlink" href="#key-features" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p><strong>Full Compliance</strong>: Implements the complete UNF v6 specification, including numeric, string, date/time, and bit field normalization.</p></li>
+<li><p><strong>Canonical Alignment (WIP)</strong>: Aims for parity with the Java Dataverse codebase.</p></li>
 <li><p><strong>High Performance</strong>: Leverages the Rust-powered Polars engine for columnar operations.</p></li>
 <li><p><strong>Streaming Support</strong>: Process datasets larger than RAM with minimal memory footprint.</p></li>
-<li><p><strong>Multi-Format</strong>: Native support for Parquet and CSV.</p></li>
+<li><p><strong>Multi-Format</strong>: Native support for Parquet, CSV, and statistical formats (SAS, Stata, SPSS).</p></li>
 </ul>
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>

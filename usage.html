@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Usage Guide &mdash; dartfx-unf 0.1.0 documentation</title>
+  <title>Usage Guide &mdash; dartfx-unf 0.2.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/documentation_options.js?v=938c9ccc"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -70,6 +70,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#multiple-files-datasets">3. Multiple Files (Datasets)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#in-memory-data-dataframes-series">4. In-Memory Data (DataFrames &amp; Series)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#exporting-reports">5. Exporting Reports</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#metadata-traceability">Metadata &amp; Traceability</a></li>
 </ul>
 </li>
 </ul>
@@ -145,6 +146,8 @@
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">--truncate</span></code></strong>: Use truncation (R1) instead of IEEE 754 rounding.</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">--parse-date</span></code></strong>: Attempt to auto-parse dates in CSV files (on by default).</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">--no-parse-date</span></code></strong>: Disable automatic date parsing.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">--leading-zeros</span></code></strong>: Auto-detect columns with leading zeros (e.g. ‘01’) and treat them as strings to preserve the zeros.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">--no-leading-zeros</span></code></strong>: Disable automatic leading zero detection (default for performance).</p></li>
 </ul>
 </section>
 <section id="schema-specification">
@@ -374,6 +377,27 @@ uv<span class="w"> </span>run<span class="w"> </span>dartfx-unf<span class="w"> 
 
 <span class="c1"># Export to a JSON string (optionally validated)</span>
 <span class="n">json_str</span> <span class="o">=</span> <span class="n">report</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">validate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="metadata-traceability">
+<h3>Metadata &amp; Traceability<a class="headerlink" href="#metadata-traceability" title="Link to this heading"></a></h3>
+<p>Every generated report includes a <code class="docutils literal notranslate"><span class="pre">metadata</span></code> section that preserves all calculation parameters and options. This ensures that even if different options result in different UNFs (due to interpretations of ambiguous data), the calculation process remains fully transparent and auditable.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;metadata&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-03-09T21:18:24Z&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;parameters&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;N&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">7</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;X&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">128</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;H&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">128</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;rounding_mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;IEEE_754_nearest_even&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;options&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;streaming&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;batch_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100000</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;parse_dates&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;detect_leading_zeros&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
 </pre></div>
 </div>
 </section>

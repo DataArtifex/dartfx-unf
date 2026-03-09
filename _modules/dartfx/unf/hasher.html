@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>dartfx.unf.hasher &mdash; dartfx-unf 0.1.0 documentation</title>
+  <title>dartfx.unf.hasher &mdash; dartfx-unf 0.2.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -13,7 +13,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/documentation_options.js?v=938c9ccc"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -171,19 +171,69 @@
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_strip_unf_header</span><span class="p">(</span><span class="n">unf_string</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract the base64 hash portion from a printable UNF string.</span>
+
+<span class="sd">    The canonical Java reference implementation (``UnfDigest.addUNFs``)</span>
+<span class="sd">    strips the ``UNF:`` prefix and any version/parameter tokens before</span>
+<span class="sd">    combining column UNFs into a file-level UNF.  For example::</span>
+
+<span class="sd">        &quot;UNF:6:AvELPR5QTaBbnq6S22Msow==&quot;  →  &quot;AvELPR5QTaBbnq6S22Msow==&quot;</span>
+<span class="sd">        &quot;UNF:6:N9:IKw+l4ywdwsJeDze8dplJA==&quot;  →  &quot;IKw+l4ywdwsJeDze8dplJA==&quot;</span>
+
+<span class="sd">    This function mirrors that behaviour by splitting on ``&quot;:&quot;`` and</span>
+<span class="sd">    returning the last segment, which is always the base64-encoded hash.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    unf_string : str</span>
+<span class="sd">        A full printable UNF string (e.g. ``UNF:6:hash==``).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        The bare base64 hash component.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Split on &quot;:&quot; — the last element is always the base64 hash.</span>
+    <span class="c1"># &quot;UNF:6:hash==&quot;       → [&quot;UNF&quot;, &quot;6&quot;, &quot;hash==&quot;]       → &quot;hash==&quot;</span>
+    <span class="c1"># &quot;UNF:6:N9,H256:hash==&quot; → [&quot;UNF&quot;, &quot;6&quot;, &quot;N9,H256&quot;, &quot;hash==&quot;] → &quot;hash==&quot;</span>
+    <span class="n">parts</span> <span class="o">=</span> <span class="n">unf_string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">unf_string</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;UNF:&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">parts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+
 <div class="viewcode-block" id="combine_unfs">
 <a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.hasher.combine_unfs">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">combine_unfs</span><span class="p">(</span><span class="n">unf_strings</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">params</span><span class="p">:</span> <span class="n">UNFParameters</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Combine multiple UNF strings into a single UNF (spec §IIa / §IIb).</span>
 
-<span class="sd">    The UNF specification requires:</span>
-<span class="sd">    1. Sort the printable UNF strings in POSIX locale order.</span>
-<span class="sd">    2. Apply the UNF algorithm to the resulting vector of character strings.</span>
+<span class="sd">    Implements the combination algorithm for higher-level UNF objects:</span>
+
+<span class="sd">    1. **Strip** the ``UNF:6:`` header from each individual UNF, keeping</span>
+<span class="sd">       only the base64 hash component.</span>
+<span class="sd">    2. **Sort** the stripped hashes in POSIX locale order (byte-level).</span>
+<span class="sd">    3. **Apply** the UNF character-string algorithm (UTF-8 encode, terminate</span>
+<span class="sd">       with ``\\n\\0``, concatenate, SHA-256 hash).</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">       The UNF v6 specification text says to sort &quot;the printable UTF-8</span>
+<span class="sd">       representations of the individual UNFs&quot;, which could be read as</span>
+<span class="sd">       using the full ``UNF:6:...`` strings.  However, the canonical Java</span>
+<span class="sd">       reference implementation (``UnfDigest.addUNFs`` in the Dataverse</span>
+<span class="sd">       UNF library) strips the header before combining.  This</span>
+<span class="sd">       implementation follows the Java behaviour to ensure</span>
+<span class="sd">       interoperability with the Dataverse ecosystem and all existing</span>
+<span class="sd">       UNF signatures produced by it.</span>
+
+<span class="sd">       See: https://github.com/IQSS/UNF  (``UnfDigest.addUNFs``)</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    unf_strings : list[str]</span>
-<span class="sd">        List of printable UNF strings to combine.</span>
+<span class="sd">        List of printable UNF strings to combine (e.g.</span>
+<span class="sd">        ``[&quot;UNF:6:abc==&quot;, &quot;UNF:6:xyz==&quot;]``).</span>
 <span class="sd">    params : UNFParameters, optional</span>
 <span class="sd">        Calculation parameters. Uses defaults if not provided.</span>
 
@@ -198,14 +248,19 @@
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">unf_strings</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">unf_strings</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
-    <span class="c1"># Sort in POSIX locale order (byte-level sort of UTF-8 strings)</span>
-    <span class="n">sorted_unfs</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">unf_strings</span><span class="p">)</span>
+    <span class="c1"># Strip the UNF header from each string, keeping only the base64 hash.</span>
+    <span class="c1"># This matches the canonical Java implementation (UnfDigest.addUNFs)</span>
+    <span class="c1"># which splits on &quot;:&quot; and takes the last segment before sorting.</span>
+    <span class="n">stripped</span> <span class="o">=</span> <span class="p">[</span><span class="n">_strip_unf_header</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">unf_strings</span><span class="p">]</span>
 
-    <span class="c1"># Treat each UNF string as a character string value:</span>
+    <span class="c1"># Sort in POSIX locale order (byte-level sort of UTF-8 strings)</span>
+    <span class="n">sorted_hashes</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">stripped</span><span class="p">)</span>
+
+    <span class="c1"># Treat each hash as a character string value:</span>
     <span class="c1"># encode as UTF-8, terminate with \n\0, then concatenate.</span>
     <span class="n">concatenated</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span>
-    <span class="k">for</span> <span class="n">unf_str</span> <span class="ow">in</span> <span class="n">sorted_unfs</span><span class="p">:</span>
-        <span class="n">concatenated</span> <span class="o">+=</span> <span class="n">unf_str</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\n\x00</span><span class="s2">&quot;</span>
+    <span class="k">for</span> <span class="n">hash_str</span> <span class="ow">in</span> <span class="n">sorted_hashes</span><span class="p">:</span>
+        <span class="n">concatenated</span> <span class="o">+=</span> <span class="n">hash_str</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\n\x00</span><span class="s2">&quot;</span>
 
     <span class="k">return</span> <span class="n">compute_unf_hash</span><span class="p">(</span><span class="n">concatenated</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span></div>
 

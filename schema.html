@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Schema Specification Reference &mdash; dartfx-unf 0.1.0 documentation</title>
+  <title>Schema Specification Reference &mdash; dartfx-unf 0.2.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
@@ -14,7 +14,7 @@
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/documentation_options.js?v=938c9ccc"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -50,7 +50,10 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage Guide</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Schema Specification Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#compliance-interoperability">Compliance &amp; Interoperability</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#schema-format-json-schema">Schema Format: JSON Schema</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#basic-structure">Basic Structure</a></li>
 </ul>
@@ -135,6 +138,10 @@
 <li><p>You want to ensure reproducible, deterministic fingerprints</p></li>
 <li><p>Your date or datetime data uses non-ISO 8601 formats</p></li>
 </ul>
+<section id="compliance-interoperability">
+<h3>Compliance &amp; Interoperability<a class="headerlink" href="#compliance-interoperability" title="Link to this heading"></a></h3>
+<p>Beyond following the <a class="reference external" href="https://guides.dataverse.org/en/latest/developers/unf/unf-v6.html">UNF v6 specification</a>, <code class="docutils literal notranslate"><span class="pre">dartfx-unf</span></code> aims for full alignment with the <a class="reference external" href="https://github.com/IQSS/UNF">canonical Java Dataverse implementation</a>. Because the specification itself can be subject to interpretation for certain edge cases, the use of explicit schemas or CLI options ensures that you can achieve the desired interoperability while documenting exactly how the fingerprint was computed.</p>
+</section>
 </section>
 <section id="schema-format-json-schema">
 <h2>Schema Format: JSON Schema<a class="headerlink" href="#schema-format-json-schema" title="Link to this heading"></a></h2>

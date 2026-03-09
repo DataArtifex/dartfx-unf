@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>dartfx.unf.core &mdash; dartfx-unf 0.1.0 documentation</title>
+  <title>dartfx.unf.core &mdash; dartfx-unf 0.2.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
@@ -13,7 +13,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/documentation_options.js?v=938c9ccc"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -454,6 +454,7 @@
 
 <span class="n">_CSV_EXTENSIONS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="s2">&quot;.csv&quot;</span><span class="p">,</span> <span class="s2">&quot;.tsv&quot;</span><span class="p">,</span> <span class="s2">&quot;.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;.tab&quot;</span><span class="p">))</span>
 <span class="n">_TAB_EXTENSIONS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="s2">&quot;.tsv&quot;</span><span class="p">,</span> <span class="s2">&quot;.tab&quot;</span><span class="p">))</span>
+<span class="n">_STAT_EXTENSIONS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="s2">&quot;.sav&quot;</span><span class="p">,</span> <span class="s2">&quot;.zsav&quot;</span><span class="p">,</span> <span class="s2">&quot;.dta&quot;</span><span class="p">,</span> <span class="s2">&quot;.sas7bdat&quot;</span><span class="p">,</span> <span class="s2">&quot;.xpt&quot;</span><span class="p">))</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_separator</span><span class="p">(</span><span class="n">suffix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -463,12 +464,56 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_validate_suffix</span><span class="p">(</span><span class="n">suffix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Raise ``ValueError`` if *suffix* is not a supported format.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">suffix</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;.parquet&quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">_CSV_EXTENSIONS</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">suffix</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;.parquet&quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">_CSV_EXTENSIONS</span><span class="p">,</span> <span class="o">*</span><span class="n">_STAT_EXTENSIONS</span><span class="p">):</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Unsupported file format: </span><span class="si">{</span><span class="n">suffix</span><span class="si">!r}</span><span class="s2">. &quot;</span>
-            <span class="s2">&quot;Use .csv, .tsv, .tab, .txt, or .parquet.&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Unsupported file format: </span><span class="si">{</span><span class="n">suffix</span><span class="si">!r}</span><span class="s2">. Use .csv, .tsv, .tab, &quot;</span>
+            <span class="s2">&quot;.txt, .parquet, .sav, .zsav, .dta, .sas7bdat, or .xpt.&quot;</span>
         <span class="p">)</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_detect_leading_zeros_in_csv</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">separator</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">infer_schema_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Detect columns with integer-like leading zeros in a CSV file.</span>
+
+<span class="sd">    Returns a mapping of column names to &quot;string&quot; for any column that</span>
+<span class="sd">    should be treated as a string to preserve leading zeros.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">infer_schema_length</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="c1"># Read a sample of rows as strings to check for leading zeros.</span>
+    <span class="c1"># We align this with the user-provided infer_schema_length.</span>
+    <span class="n">sample_size</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">infer_schema_length</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="k">else</span> <span class="n">infer_schema_length</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># We use pl.read_csv with infer_schema_length=0 to read as strings.</span>
+        <span class="c1"># This is fast for a small sample.</span>
+        <span class="n">df_sample</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+            <span class="n">path</span><span class="p">,</span>
+            <span class="n">separator</span><span class="o">=</span><span class="n">separator</span><span class="p">,</span>
+            <span class="n">n_rows</span><span class="o">=</span><span class="n">sample_size</span><span class="p">,</span>
+            <span class="n">infer_schema_length</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="c1"># If reading fails (e.g. empty file or weird format), skip detection.</span>
+        <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="n">overrides</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df_sample</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">series</span> <span class="o">=</span> <span class="n">df_sample</span><span class="o">.</span><span class="n">get_column</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+
+        <span class="c1"># We look for a pattern: starts with &#39;0&#39;, followed by digits, and has more</span>
+        <span class="c1"># than 1 digit in total (e.g. &quot;01&quot; but not &quot;0&quot;).</span>
+        <span class="c1"># Regex: ^0[0-9]+$ matches strings consisting only of a leading zero</span>
+        <span class="c1"># followed by one or more digits.</span>
+        <span class="k">if</span> <span class="n">series</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^0[0-9]+$&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">overrides</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;string&quot;</span>
+
+    <span class="k">return</span> <span class="n">overrides</span>
 
 
 <span class="c1"># ---------------------------------------------------------------------------</span>
@@ -482,6 +527,7 @@
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">infer_schema_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
     <span class="n">parse_dates</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">schema_overrides</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataType</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Yield successive ``DataFrame`` batches from *path*.</span>
 
@@ -491,8 +537,15 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="n">_CSV_EXTENSIONS</span><span class="p">:</span>
         <span class="k">yield from</span> <span class="n">_iter_batches_csv</span><span class="p">(</span>
-            <span class="n">path</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">_get_separator</span><span class="p">(</span><span class="n">suffix</span><span class="p">),</span> <span class="n">infer_schema_length</span><span class="p">,</span> <span class="n">parse_dates</span>
+            <span class="n">path</span><span class="p">,</span>
+            <span class="n">batch_size</span><span class="p">,</span>
+            <span class="n">_get_separator</span><span class="p">(</span><span class="n">suffix</span><span class="p">),</span>
+            <span class="n">infer_schema_length</span><span class="p">,</span>
+            <span class="n">parse_dates</span><span class="p">,</span>
+            <span class="n">schema_overrides</span><span class="p">,</span>
         <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="n">_STAT_EXTENSIONS</span><span class="p">:</span>
+        <span class="k">yield from</span> <span class="n">_iter_batches_stat</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">yield from</span> <span class="n">_iter_batches_parquet</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
 
@@ -503,6 +556,7 @@
     <span class="n">separator</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">infer_schema_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
     <span class="n">parse_dates</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">schema_overrides</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataType</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Yield CSV row batches via ``pl.scan_csv().collect_batches()``.</span>
 
@@ -516,6 +570,7 @@
         <span class="n">separator</span><span class="o">=</span><span class="n">separator</span><span class="p">,</span>
         <span class="n">infer_schema_length</span><span class="o">=</span><span class="n">schema_length</span><span class="p">,</span>
         <span class="n">try_parse_dates</span><span class="o">=</span><span class="n">parse_dates</span><span class="p">,</span>
+        <span class="n">schema_overrides</span><span class="o">=</span><span class="n">schema_overrides</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">yield from</span> <span class="n">lf</span><span class="o">.</span><span class="n">collect_batches</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
 
@@ -530,6 +585,36 @@
     <span class="n">pf</span> <span class="o">=</span> <span class="n">pq</span><span class="o">.</span><span class="n">ParquetFile</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
     <span class="k">for</span> <span class="n">record_batch</span> <span class="ow">in</span> <span class="n">pf</span><span class="o">.</span><span class="n">iter_batches</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">):</span>
         <span class="k">yield</span> <span class="n">cast</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">from_arrow</span><span class="p">(</span><span class="n">record_batch</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_pyreadstat_func</span><span class="p">(</span><span class="n">suffix</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the appropriate pyreadstat reading function for a suffix.&quot;&quot;&quot;</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pyreadstat</span>
+
+    <span class="k">if</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;.sav&quot;</span><span class="p">,</span> <span class="s2">&quot;.zsav&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">pyreadstat</span><span class="o">.</span><span class="n">read_sav</span>
+    <span class="k">if</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.dta&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pyreadstat</span><span class="o">.</span><span class="n">read_dta</span>
+    <span class="k">if</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.sas7bdat&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pyreadstat</span><span class="o">.</span><span class="n">read_sas7bdat</span>
+    <span class="k">if</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.xpt&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pyreadstat</span><span class="o">.</span><span class="n">read_xport</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported pyreadstat format: </span><span class="si">{</span><span class="n">suffix</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_iter_batches_stat</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">suffix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Yield statistical file row batches via pyreadstat.&quot;&quot;&quot;</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pyreadstat</span>
+
+    <span class="n">read_func</span> <span class="o">=</span> <span class="n">_get_pyreadstat_func</span><span class="p">(</span><span class="n">suffix</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">pd_df</span><span class="p">,</span> <span class="n">_meta</span> <span class="ow">in</span> <span class="n">pyreadstat</span><span class="o">.</span><span class="n">read_file_in_chunks</span><span class="p">(</span>
+        <span class="n">read_func</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">chunksize</span><span class="o">=</span><span class="n">batch_size</span>
+    <span class="p">):</span>
+        <span class="k">yield</span> <span class="n">pl</span><span class="o">.</span><span class="n">from_pandas</span><span class="p">(</span><span class="n">pd_df</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_parse_string_to_date_with_formats</span><span class="p">(</span>
@@ -772,6 +857,7 @@
     <span class="n">infer_schema_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
     <span class="n">schema</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">parse_dates</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">detect_leading_zeros</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UNFReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the UNF fingerprint for a CSV or Parquet data file.</span>
 
@@ -804,6 +890,9 @@
 <span class="sd">        User-specified types take precedence over inferred types.</span>
 <span class="sd">    parse_dates : bool, default True</span>
 <span class="sd">        If True, attempt to auto-parse date and datetime columns in CSV files.</span>
+<span class="sd">    detect_leading_zeros : bool, default False</span>
+<span class="sd">        If True, auto-detect columns with leading zeros (e.g. &#39;01&#39;) and treat</span>
+<span class="sd">        them as strings to preserve the zeros. Disabled by default.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -836,8 +925,32 @@
 
     <span class="c1"># Parse and validate schema input with full schema objects (for format support)</span>
     <span class="n">parsed_schema</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">parse_schema_input</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">return_full_schema</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="n">schema</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">parse_schema_input</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">return_full_schema</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="n">schema</span> <span class="k">else</span> <span class="p">{}</span>
     <span class="p">)</span>
+
+    <span class="c1"># Auto-detect leading zeros for CSV files to preserve them as strings</span>
+    <span class="k">if</span> <span class="n">detect_leading_zeros</span> <span class="ow">and</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="n">_CSV_EXTENSIONS</span><span class="p">:</span>
+        <span class="n">lz_overrides</span> <span class="o">=</span> <span class="n">_detect_leading_zeros_in_csv</span><span class="p">(</span>
+            <span class="n">path</span><span class="p">,</span> <span class="n">_get_separator</span><span class="p">(</span><span class="n">suffix</span><span class="p">),</span> <span class="n">infer_schema_length</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">lz_overrides</span><span class="p">:</span>
+            <span class="c1"># Merge: user-provided schema wins</span>
+            <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">lz_overrides</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">parsed_schema</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsed_schema</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">parsed_schema</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">parsed_schema</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="n">parsed_schema</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">}</span>  <span class="c1"># type: ignore[assignment,index]</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">parsed_schema</span><span class="p">:</span>
+        <span class="n">parsed_schema</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">polars_overrides</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataType</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">parsed_schema</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">col_name</span><span class="p">,</span> <span class="n">col_spec</span> <span class="ow">in</span> <span class="n">parsed_schema</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col_spec</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">col_spec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;string&quot;</span><span class="p">:</span>
+                <span class="n">polars_overrides</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">String</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col_spec</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">col_spec</span> <span class="o">==</span> <span class="s2">&quot;string&quot;</span><span class="p">:</span>
+                <span class="n">polars_overrides</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">String</span><span class="p">()</span>
 
     <span class="c1"># --- decide processing mode ---</span>
     <span class="k">if</span> <span class="n">streaming</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -847,7 +960,7 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
             <span class="s2">&quot;Processing </span><span class="si">%s</span><span class="s2"> in streaming mode (batch_size=</span><span class="si">%d</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">batch_size</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">_unf_file_streaming</span><span class="p">(</span>
+        <span class="n">report</span> <span class="o">=</span> <span class="n">_unf_file_streaming</span><span class="p">(</span>
             <span class="n">path</span><span class="p">,</span>
             <span class="n">suffix</span><span class="p">,</span>
             <span class="n">params</span><span class="p">,</span>
@@ -856,12 +969,29 @@
             <span class="n">infer_schema_length</span><span class="p">,</span>
             <span class="n">parsed_schema</span><span class="p">,</span>
             <span class="n">parse_dates</span><span class="p">,</span>
+            <span class="n">polars_overrides</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Processing </span><span class="si">%s</span><span class="s2"> in-memory&quot;</span><span class="p">,</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">report</span> <span class="o">=</span> <span class="n">_unf_file_memory</span><span class="p">(</span>
+            <span class="n">path</span><span class="p">,</span>
+            <span class="n">suffix</span><span class="p">,</span>
+            <span class="n">params</span><span class="p">,</span>
+            <span class="n">label</span><span class="p">,</span>
+            <span class="n">infer_schema_length</span><span class="p">,</span>
+            <span class="n">parsed_schema</span><span class="p">,</span>
+            <span class="n">parse_dates</span><span class="p">,</span>
+            <span class="n">polars_overrides</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Processing </span><span class="si">%s</span><span class="s2"> in-memory&quot;</span><span class="p">,</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">_unf_file_memory</span><span class="p">(</span>
-        <span class="n">path</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">infer_schema_length</span><span class="p">,</span> <span class="n">parsed_schema</span><span class="p">,</span> <span class="n">parse_dates</span>
-    <span class="p">)</span></div>
+    <span class="n">report</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;streaming&quot;</span><span class="p">:</span> <span class="n">streaming</span><span class="p">,</span>
+        <span class="s2">&quot;batch_size&quot;</span><span class="p">:</span> <span class="n">batch_size</span><span class="p">,</span>
+        <span class="s2">&quot;infer_schema_length&quot;</span><span class="p">:</span> <span class="n">infer_schema_length</span><span class="p">,</span>
+        <span class="s2">&quot;parse_dates&quot;</span><span class="p">:</span> <span class="n">parse_dates</span><span class="p">,</span>
+        <span class="s2">&quot;detect_leading_zeros&quot;</span><span class="p">:</span> <span class="n">detect_leading_zeros</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">report</span></div>
 
 
 
@@ -873,10 +1003,18 @@
     <span class="n">infer_schema_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
     <span class="n">user_schema</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">parse_dates</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">polars_overrides</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataType</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UNFReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Process a file entirely in memory with parallel column hashing.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">polars_overrides</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">polars_overrides</span> <span class="o">=</span> <span class="p">{}</span>
+
     <span class="k">if</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.parquet&quot;</span><span class="p">:</span>
         <span class="n">df</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">read_parquet</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="n">_STAT_EXTENSIONS</span><span class="p">:</span>
+        <span class="n">read_func</span> <span class="o">=</span> <span class="n">_get_pyreadstat_func</span><span class="p">(</span><span class="n">suffix</span><span class="p">)</span>
+        <span class="n">pd_df</span><span class="p">,</span> <span class="n">_meta</span> <span class="o">=</span> <span class="n">read_func</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">from_pandas</span><span class="p">(</span><span class="n">pd_df</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># -1 means scan all rows, so pass None to Polars</span>
         <span class="n">schema_length</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">infer_schema_length</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="k">else</span> <span class="n">infer_schema_length</span>
@@ -885,6 +1023,7 @@
             <span class="n">separator</span><span class="o">=</span><span class="n">_get_separator</span><span class="p">(</span><span class="n">suffix</span><span class="p">),</span>
             <span class="n">infer_schema_length</span><span class="o">=</span><span class="n">schema_length</span><span class="p">,</span>
             <span class="n">try_parse_dates</span><span class="o">=</span><span class="n">parse_dates</span><span class="p">,</span>
+            <span class="n">schema_overrides</span><span class="o">=</span><span class="n">polars_overrides</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="c1"># Apply schema overrides if provided</span>
@@ -904,6 +1043,7 @@
     <span class="n">infer_schema_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
     <span class="n">user_schema</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">parse_dates</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">polars_overrides</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataType</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UNFReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Process a file in streaming mode using incremental SHA-256 hashers.</span>
 
@@ -918,9 +1058,19 @@
     <span class="n">column_types</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">rows_processed</span> <span class="o">=</span> <span class="mi">0</span>
 
+    <span class="k">if</span> <span class="n">polars_overrides</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">polars_overrides</span> <span class="o">=</span> <span class="p">{}</span>
+
     <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">()</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">_batch_idx</span><span class="p">,</span> <span class="n">batch_df</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
-            <span class="n">_iter_batches</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">infer_schema_length</span><span class="p">,</span> <span class="n">parse_dates</span><span class="p">)</span>
+            <span class="n">_iter_batches</span><span class="p">(</span>
+                <span class="n">path</span><span class="p">,</span>
+                <span class="n">suffix</span><span class="p">,</span>
+                <span class="n">batch_size</span><span class="p">,</span>
+                <span class="n">infer_schema_length</span><span class="p">,</span>
+                <span class="n">parse_dates</span><span class="p">,</span>
+                <span class="n">polars_overrides</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="p">):</span>
             <span class="n">batch_rows</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch_df</span><span class="p">)</span>
 
@@ -1000,6 +1150,7 @@
     <span class="n">infer_schema_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
     <span class="n">schema</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">parse_dates</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">detect_leading_zeros</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UNFReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the combined UNF of multiple files (e.g. a partitioned dataset).</span>
 
@@ -1025,6 +1176,9 @@
 <span class="sd">        Same format as in ``unf_file()``.</span>
 <span class="sd">    parse_dates : bool, default True</span>
 <span class="sd">        If True, attempt to auto-parse date and datetime columns in CSV files.</span>
+<span class="sd">    detect_leading_zeros : bool, default False</span>
+<span class="sd">        If True, auto-detect columns with leading zeros (e.g. &#39;01&#39;) and treat</span>
+<span class="sd">        them as strings to preserve the zeros. Disabled by default.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -1052,6 +1206,7 @@
             <span class="n">infer_schema_length</span><span class="o">=</span><span class="n">infer_schema_length</span><span class="p">,</span>
             <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
             <span class="n">parse_dates</span><span class="o">=</span><span class="n">parse_dates</span><span class="p">,</span>
+            <span class="n">detect_leading_zeros</span><span class="o">=</span><span class="n">detect_leading_zeros</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">result</span><span class="p">,</span> <span class="n">FileResult</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">report</span><span class="o">.</span><span class="n">result</span>
@@ -1074,7 +1229,15 @@
         <span class="n">label</span><span class="o">=</span><span class="n">label</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">UNFReport</span><span class="p">(</span><span class="n">result</span><span class="o">=</span><span class="n">dataset_result</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span></div>
+    <span class="n">report</span> <span class="o">=</span> <span class="n">UNFReport</span><span class="p">(</span><span class="n">result</span><span class="o">=</span><span class="n">dataset_result</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">report</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;streaming&quot;</span><span class="p">:</span> <span class="n">streaming</span><span class="p">,</span>
+        <span class="s2">&quot;batch_size&quot;</span><span class="p">:</span> <span class="n">batch_size</span><span class="p">,</span>
+        <span class="s2">&quot;infer_schema_length&quot;</span><span class="p">:</span> <span class="n">infer_schema_length</span><span class="p">,</span>
+        <span class="s2">&quot;parse_dates&quot;</span><span class="p">:</span> <span class="n">parse_dates</span><span class="p">,</span>
+        <span class="s2">&quot;detect_leading_zeros&quot;</span><span class="p">:</span> <span class="n">detect_leading_zeros</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">report</span></div>
 
 
 
@@ -1154,7 +1317,12 @@
         <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Unsupported format: </span><span class="si">{</span><span class="nb">format</span><span class="si">!r}</span><span class="s2">. Use &#39;csv&#39; or &#39;parquet&#39;.&quot;</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">unf_dataframe</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span> <span class="ow">or</span> <span class="s2">&quot;stream&quot;</span><span class="p">)</span></div>
+    <span class="n">report</span> <span class="o">=</span> <span class="n">unf_dataframe</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span> <span class="ow">or</span> <span class="s2">&quot;stream&quot;</span><span class="p">)</span>
+    <span class="n">report</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="nb">format</span><span class="p">,</span>
+        <span class="s2">&quot;parse_dates&quot;</span><span class="p">:</span> <span class="n">parse_dates</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">report</span></div>
 
 </pre></div>
 

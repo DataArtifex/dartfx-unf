@@ -29,7 +29,10 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "files",
         nargs="+",
-        help="One or more data files (.csv, .tsv, .parquet).",
+        help=(
+            "One or more data files (.csv, .tsv, .parquet, .sav, .zsav, "
+            ".dta, .sas7bdat, .xpt)."
+        ),
     )
     parser.add_argument(
         "-o",

@@ -1,7 +1,7 @@
 {
   "unf_version": "6",
   "metadata": {
-    "timestamp": "2026-03-09T19:34:20.929812+00:00",
+    "timestamp": "2026-03-09T19:34:36.513673+00:00",
     "parameters": {
       "N": 7,
       "X": 128,
@@ -42,7 +42,7 @@
         "type": "numeric"
       }
     ],
-    "label": "101A.csv",
+    "label": "101A.parquet",
     "type": "file"
   }
 }

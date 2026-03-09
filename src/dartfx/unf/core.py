@@ -367,6 +367,7 @@ def unf_dataframe(
 
 _CSV_EXTENSIONS = frozenset((".csv", ".tsv", ".txt", ".tab"))
 _TAB_EXTENSIONS = frozenset((".tsv", ".tab"))
+_STAT_EXTENSIONS = frozenset((".sav", ".zsav", ".dta", ".sas7bdat", ".xpt"))
 
 
 def _get_separator(suffix: str) -> str:
@@ -376,10 +377,10 @@ def _get_separator(suffix: str) -> str:
 
 def _validate_suffix(suffix: str) -> None:
     """Raise ``ValueError`` if *suffix* is not a supported format."""
-    if suffix not in (".parquet", *_CSV_EXTENSIONS):
+    if suffix not in (".parquet", *_CSV_EXTENSIONS, *_STAT_EXTENSIONS):
         msg = (
-            f"Unsupported file format: {suffix!r}. "
-            "Use .csv, .tsv, .tab, .txt, or .parquet."
+            f"Unsupported file format: {suffix!r}. Use .csv, .tsv, .tab, "
+            ".txt, .parquet, .sav, .zsav, .dta, .sas7bdat, or .xpt."
         )
         raise ValueError(msg)
 
@@ -406,6 +407,8 @@ def _iter_batches(
         yield from _iter_batches_csv(
             path, batch_size, _get_separator(suffix), infer_schema_length, parse_dates
         )
+    elif suffix in _STAT_EXTENSIONS:
+        yield from _iter_batches_stat(path, suffix, batch_size)
     else:
         yield from _iter_batches_parquet(path, batch_size)
 
@@ -443,6 +446,36 @@ def _iter_batches_parquet(
     pf = pq.ParquetFile(path)  # type: ignore
     for record_batch in pf.iter_batches(batch_size=batch_size):
         yield cast(pl.DataFrame, pl.from_arrow(record_batch))
+
+
+def _get_pyreadstat_func(suffix: str):
+    """Return the appropriate pyreadstat reading function for a suffix."""
+    import pyreadstat
+
+    if suffix in (".sav", ".zsav"):
+        return pyreadstat.read_sav
+    if suffix == ".dta":
+        return pyreadstat.read_dta
+    if suffix == ".sas7bdat":
+        return pyreadstat.read_sas7bdat
+    if suffix == ".xpt":
+        return pyreadstat.read_xport
+    raise ValueError(f"Unsupported pyreadstat format: {suffix}")
+
+
+def _iter_batches_stat(
+    path: Path,
+    suffix: str,
+    batch_size: int,
+) -> Iterator[pl.DataFrame]:
+    """Yield statistical file row batches via pyreadstat."""
+    import pyreadstat
+
+    read_func = _get_pyreadstat_func(suffix)
+    for pd_df, _meta in pyreadstat.read_file_in_chunks(
+        read_func, path, chunksize=batch_size
+    ):
+        yield pl.from_pandas(pd_df)
 
 
 def _parse_string_to_date_with_formats(
@@ -787,6 +820,10 @@ def _unf_file_memory(
     """Process a file entirely in memory with parallel column hashing."""
     if suffix == ".parquet":
         df = pl.read_parquet(path)
+    elif suffix in _STAT_EXTENSIONS:
+        read_func = _get_pyreadstat_func(suffix)
+        pd_df, _meta = read_func(path)
+        df = pl.from_pandas(pd_df)
     else:
         # -1 means scan all rows, so pass None to Polars
         schema_length = None if infer_schema_length == -1 else infer_schema_length

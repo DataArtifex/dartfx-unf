@@ -20,28 +20,28 @@ class ColumnResult:
     """UNF result for a single column (vector)."""
 
     name: str
-    unf: str
     type: str = ""
+    unf: str = ""
 
 
 @dataclass
 class FileResult:
     """UNF result for a single file (data frame)."""
 
-    unf: str
-    columns: list[ColumnResult] = field(default_factory=list)
-    label: str = ""
     type: str = "file"
+    label: str = ""
+    unf: str = ""
+    columns: list[ColumnResult] = field(default_factory=list)
 
 
 @dataclass
 class DatasetResult:
     """UNF result for a dataset (multiple files)."""
 
-    unf: str
-    entries: list[FileResult] = field(default_factory=list)
-    label: str = ""
     type: str = "dataset"
+    label: str = ""
+    unf: str = ""
+    entries: list[FileResult] = field(default_factory=list)
 
 
 @dataclass

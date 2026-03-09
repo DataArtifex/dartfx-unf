@@ -41,6 +41,8 @@ uv run dartfx-unf file1.csv file2.parquet file3.tsv
 *   **`--no-parse-date`**: Disable automatic date parsing.
 *   **`--leading-zeros`**: Auto-detect columns with leading zeros (e.g. '01') and treat them as strings to preserve the zeros.
 *   **`--no-leading-zeros`**: Disable automatic leading zero detection (default for performance).
+*   **`--null-as-strings`**: Treat columns with null values as strings (Dataverse behavior).
+*   **`--null-as-nulls`**: Treat nulls as nulls without inferring string (default).
 
 ### Schema Specification
 
@@ -162,6 +164,9 @@ report = unf_file("data.csv", infer_schema_length=-1)     # scan all rows
 
 # Control automatic date parsing (on by default for CSV)
 report = unf_file("data.csv", parse_dates=False)
+
+# Control how nulls are processed
+report = unf_file("data.csv", null_handling="null-as-string")
 
 
 # Use a JSON Schema to override type inference
@@ -298,7 +303,8 @@ Every generated report includes a `metadata` section that preserves all calculat
     "streaming": true,
     "batch_size": 100000,
     "parse_dates": true,
-    "detect_leading_zeros": false
+    "detect_leading_zeros": false,
+    "null_handling": "null-as-null"
   }
 }
 ```

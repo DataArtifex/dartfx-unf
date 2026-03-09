@@ -287,6 +287,8 @@ Same format as in <code class="docutils literal notranslate"><span class="pre">u
 <li><p><strong>parse_dates</strong> (<em>bool</em><em>, </em><em>default True</em>) – If True, attempt to auto-parse date and datetime columns in CSV files.</p></li>
 <li><p><strong>detect_leading_zeros</strong> (<em>bool</em><em>, </em><em>default False</em>) – If True, auto-detect columns with leading zeros (e.g. ‘01’) and treat
 them as strings to preserve the zeros. Disabled by default.</p></li>
+<li><p><strong>null_handling</strong> (<em>Literal</em><em>[</em><em>&quot;null-as-null&quot;</em><em>, </em><em>&quot;null-as-string&quot;</em><em>]</em><em>, </em><em>default &quot;null-as-null&quot;</em>) – How to handle null values. If “null-as-string”, casts any column
+containing null values to a string type.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -333,6 +335,8 @@ User-specified types take precedence over inferred types.</p></li>
 <li><p><strong>parse_dates</strong> (<em>bool</em><em>, </em><em>default True</em>) – If True, attempt to auto-parse date and datetime columns in CSV files.</p></li>
 <li><p><strong>detect_leading_zeros</strong> (<em>bool</em><em>, </em><em>default False</em>) – If True, auto-detect columns with leading zeros (e.g. ‘01’) and treat
 them as strings to preserve the zeros. Disabled by default.</p></li>
+<li><p><strong>null_handling</strong> (<em>Literal</em><em>[</em><em>&quot;null-as-null&quot;</em><em>, </em><em>&quot;null-as-string&quot;</em><em>]</em><em>, </em><em>default &quot;null-as-null&quot;</em>) – If “null-as-string”, any non-string column containing nulls will be cast
+to a string to match Dataverse’s behavior.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>

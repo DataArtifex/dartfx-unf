@@ -912,6 +912,9 @@
 <span class="sd">    detect_leading_zeros : bool, default False</span>
 <span class="sd">        If True, auto-detect columns with leading zeros (e.g. &#39;01&#39;) and treat</span>
 <span class="sd">        them as strings to preserve the zeros. Disabled by default.</span>
+<span class="sd">    null_handling: Literal[&quot;null-as-null&quot;, &quot;null-as-string&quot;], default &quot;null-as-null&quot;</span>
+<span class="sd">        If &quot;null-as-string&quot;, any non-string column containing nulls will be cast</span>
+<span class="sd">        to a string to match Dataverse&#39;s behavior.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -1241,6 +1244,9 @@
 <span class="sd">    detect_leading_zeros : bool, default False</span>
 <span class="sd">        If True, auto-detect columns with leading zeros (e.g. &#39;01&#39;) and treat</span>
 <span class="sd">        them as strings to preserve the zeros. Disabled by default.</span>
+<span class="sd">    null_handling: Literal[&quot;null-as-null&quot;, &quot;null-as-string&quot;], default &quot;null-as-null&quot;</span>
+<span class="sd">        How to handle null values. If &quot;null-as-string&quot;, casts any column</span>
+<span class="sd">        containing null values to a string type.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>

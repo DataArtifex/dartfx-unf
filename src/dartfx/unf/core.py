@@ -823,6 +823,9 @@ def unf_file(
     detect_leading_zeros : bool, default False
         If True, auto-detect columns with leading zeros (e.g. '01') and treat
         them as strings to preserve the zeros. Disabled by default.
+    null_handling: Literal["null-as-null", "null-as-string"], default "null-as-null"
+        If "null-as-string", any non-string column containing nulls will be cast
+        to a string to match Dataverse's behavior.
 
     Returns
     -------
@@ -1149,6 +1152,9 @@ def unf_dataset(
     detect_leading_zeros : bool, default False
         If True, auto-detect columns with leading zeros (e.g. '01') and treat
         them as strings to preserve the zeros. Disabled by default.
+    null_handling: Literal["null-as-null", "null-as-string"], default "null-as-null"
+        How to handle null values. If "null-as-string", casts any column
+        containing null values to a string type.
 
     Returns
     -------

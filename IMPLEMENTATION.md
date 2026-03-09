@@ -88,6 +88,7 @@ Input File (.csv / .parquet)
 | — | API | Helpers for DataFrames, bytes, and file-like streams. |
 | — | Statistical Formats | Native support for SAS (.sas7bdat, .xpt), Stata (.dta), and SPSS (.sav, .zsav). |
 | — | Code Preservation | Optional leading zero detection to preserve CSV code lists as strings. |
+| — | Null Handling | Options for `null-as-string` matching Dataverse Java behavior or `null-as-null` (default). |
 | — | Traceability | `metadata.options` in JSON reports to record all calculation settings. |
 | — | Benchmarking | Comprehensive macro-benchmark suite with CI integration. |
 | — | Documentation | Sphinx site with Usage Guide, API Reference, and Spec Summary. |
@@ -113,6 +114,7 @@ The following features have been successfully integrated:
 9. **Statistical Format Support**: Integrated `pyreadstat` for native processing of SAS, Stata, and SPSS files, ensuring consistency between statistical packages and raw formats.
 10. **Leading Zero Detection**: Implemented a "code list" protection heuristic that automatically identifies and preserves leading zeros in CSV columns as strings.
 11. **Settings Traceability**: Added an `options` field to JSON reports, recording every parameter (streaming, batch size, etc.) used for the run.
+12. **Null Handling**: Added support for configuring null handling (`--null-as-strings` and `--null-as-nulls`) to perfectly align outputs with the canonical Java Dataverse implementation.
 
 
 ## Roadmap & Phases

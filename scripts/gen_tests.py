@@ -4,9 +4,7 @@ import pandas as pd
 import pyreadstat
 
 # Paths
-base_dir = Path(
-    "/Users/pascal/Library/CloudStorage/Dropbox/git-dartfx/dartfx-unf/tests/101"
-)
+base_dir = Path(__file__).parent.parent / "tests" / "101"
 csv_files = list(base_dir.glob("*.csv"))
 
 print(f"Generating test files from {len(csv_files)} .csv files in {base_dir}")

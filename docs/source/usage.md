@@ -41,8 +41,8 @@ uv run dartfx-unf file1.csv file2.parquet file3.tsv
 *   **`--no-parse-date`**: Disable automatic date parsing.
 *   **`--leading-zeros`**: Auto-detect columns with leading zeros (e.g. '01') and treat them as strings to preserve the zeros.
 *   **`--no-leading-zeros`**: Disable automatic leading zero detection (default for performance).
-*   **`--null-as-strings`**: Treat columns with null values as strings (Dataverse behavior).
-*   **`--null-as-nulls`**: Treat nulls as nulls without inferring string (default).
+*   **`--null-as-strings`**: Enable "Dataverse-parity" mode. Treats columns with null values as string columns and normalizes those nulls as empty strings (`\n\x00`) instead of the default missing value representation (`\x00\x00\x00`).
+*   **`--null-as-nulls`**: Treat nulls as missing values per the UNF specification (default).
 
 ### Schema Specification
 
@@ -135,6 +135,18 @@ uv run dartfx-unf --schema '{"properties": {"id": {"type": "integer"}}}' data.cs
 *   **`--streaming`**: Force Polars' "out-of-core" streaming mode. Recommended for files larger than 1GB.
 *   **`--batch-size ROWS`**: Set the batch size for streaming operations (default: 100,000).
 *   **`--scan-length ROWS`**: Number of rows to scan for CSV schema inference (default: 10,000). Use `-1` to scan all rows for more accurate type detection.
+
+### Dataverse Parity & Null Handling
+
+The UNF v6 specification distinguishes between **missing values** (normalized to 3 null bytes) and **empty strings** (normalized to `\n\0`).
+
+However, the canonical Java Dataverse implementation uses a simplified CSV parser that treats empty fields (e.g., `,,`) as literal empty strings (`""`) rather than missing values. This leads to divergent hashes when comparing Dataverse-generated UNFs with standard-compliant tools.
+
+To achieve bit-for-bit parity with Dataverse for CSV files, `dartfx-unf` provides the `--null-as-strings` flag (or `null_handling="null-as-string"` in the API). When active:
+1.  Any column containing nulls is automatically treated as a **String** column.
+2.  `null` values in these columns are normalized as **empty strings** (`\n\x00`) to match Dataverse's internal representation.
+
+For maximum alignment when verifying Dataverse datasets, it is also recommended to use `--scan-length -1` to ensure that even a single null far down in a file triggers the correct string-casting behavior.
 
 ---
 

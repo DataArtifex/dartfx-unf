@@ -167,7 +167,10 @@ def _build_parser() -> argparse.ArgumentParser:
         dest="null_handling",
         action="store_const",
         const="null-as-string",
-        help="Treat columns with null values as strings (Dataverse behavior).",
+        help=(
+            "Treat columns with null values as strings and normalize those "
+            "nulls as empty strings for bit-for-bit Dataverse parity."
+        ),
     )
     null_group.add_argument(
         "--null-as-nulls",

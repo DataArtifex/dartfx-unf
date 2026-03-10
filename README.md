@@ -83,8 +83,8 @@ uv run dartfx-unf --no-parse-date data.csv
 # Quiet mode (just the hash)
 uv run dartfx-unf --quiet data.parquet
 
-# Match Dataverse's exact behavior with nulls being inferred as strings
-uv run dartfx-unf --null-as-strings data.csv
+# Match Dataverse's exact behavior for CSVs (treats empty fields as empty strings)
+uv run dartfx-unf --null-as-strings --scan-length -1 data.csv
 
 
 # Detailed summary table

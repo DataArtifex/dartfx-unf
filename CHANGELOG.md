@@ -5,9 +5,11 @@ All notable changes to this project will be documented in this file.
 ## [0.2.0] - 2026-03-09
 
 - Added native support for statistical file formats: SAS (.sas7bdat, .xpt), Stata (.dta), and SPSS (.sav, .zsav).
-- Implemented optional leading zero detection in CSV files to preserve code lists as strings
-- Initial alignment with the canonical Java Dataverse implementation
-- Added `--leading-zeros` and `--no-leading-zeros` CLI flags.
+- Implemented optional leading zero detection in CSV files to preserve code lists as strings.
+- **Alignment with Java Dataverse implementation**:
+    - Stripped `UNF:6:` headers from column UNFs before combination (aggregation).
+    - Added "Dataverse-parity" mode for null handling (treating empty CSV fields as empty strings).
+- Added `--leading-zeros` and `--null-as-strings` CLI flags.
 - Enhanced JSON report schema with a new `metadata.options` field for full run traceability.
 - Refactored internal schema handling and deduplicated Polars type override logic.
 - Modernized internal Polars field types (transitioned from `Utf8` to `String`).

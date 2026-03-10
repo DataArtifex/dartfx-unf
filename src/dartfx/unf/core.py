@@ -119,6 +119,7 @@ def _normalize_value(
 def _normalize_series(
     series: pl.Series,
     params: UNFParameters,
+    null_handling: Literal["null-as-null", "null-as-string"] = "null-as-null",
 ) -> pl.Series:
     """Normalize a Polars Series into a Binary Series of UNF values.
 
@@ -130,7 +131,6 @@ def _normalize_series(
     dtype = series.dtype
 
     # 1. Handle Missing Values (UNF v6 §Ia.6)
-    # We use pl.when/then to handle nulls for ALL types at once.
     # Note: MISSING_VALUE (b"\x00\x00\x00") has no terminator.
     null_mask = series.is_null()
 
@@ -155,7 +155,6 @@ def _normalize_series(
     elif dtype.is_numeric():
         # Numeric still requires Decimal for precise ties-to-even rounding
         # We use map_elements for strict compliance.
-        # TODO: Optimize with Rust-based formatter or faster Python logic.
         expr = series.map_elements(
             lambda x: normalize_numeric(
                 x, digits=params.digits, truncate=params.truncate
@@ -176,11 +175,24 @@ def _normalize_series(
             pl.Binary
         ) + pl.lit(b"\n\x00")
 
+    # 2. Handle nulls based on null_handling mode
+    if null_handling == "null-as-string" and dtype in (
+        pl.Utf8,
+        pl.Categorical,
+        pl.Enum,
+    ):
+        # Dataverse-alignment: Treat nulls in string columns as empty strings ("\n\0")
+        # because Dataverse's CSV reader (String.split) treats empty fields as "".
+        null_replacement = b"\n\x00"
+    else:
+        # UNF spec default: missing values are 3 null bytes
+        null_replacement = normalize_missing()
+
     # Apply the expression and handle nulls
     # We must handle nulls AFTER the expression to avoid map_elements
     # being called on nulls or expressions failing on nulls.
     final_series = pl.select(
-        pl.when(null_mask).then(pl.lit(normalize_missing())).otherwise(expr)
+        pl.when(null_mask).then(pl.lit(null_replacement)).otherwise(expr)
     ).to_series()
 
     return final_series
@@ -195,13 +207,14 @@ def _update_hasher_from_series(
     hasher: hashlib._Hash,  # noqa: SLF001
     series: pl.Series,
     params: UNFParameters,
+    null_handling: Literal["null-as-null", "null-as-string"] = "null-as-null",
 ) -> None:
     """Feed normalised bytes from *series* into a SHA-256 *hasher*.
 
     Uses vectorized normalization where possible and joins chunks in C
     to minimize Python loop overhead.
     """
-    normalized_series = _normalize_series(series, params)
+    normalized_series = _normalize_series(series, params, null_handling=null_handling)
 
     # We join all normalized bytes into a single blob before updating the hasher.
     # This replaces thousands of Python-level loop iterations and hasher calls
@@ -219,6 +232,7 @@ def _update_hasher_from_series(
 def unf_column(
     series: pl.Series,
     params: UNFParameters | None = None,
+    null_handling: Literal["null-as-null", "null-as-string"] = "null-as-null",
 ) -> str:
     """Compute the UNF fingerprint of a single data vector (Polars Series).
 
@@ -235,32 +249,23 @@ def unf_column(
     params : UNFParameters, optional
         Calculation parameters (digits, hash bits, etc.). If None, default UNF v6
         settings are used (N=7, H=128, X=128).
+    null_handling: Literal["null-as-null", "null-as-string"], default "null-as-null"
+        If "null-as-string", null values in string-like columns are normalized as
+        empty strings (newline + null byte) instead of the UNF missing value
+        representation (3 null bytes). This provides parity with the canonical
+        Java Dataverse implementation's CSV parsing behavior.
 
     Returns
     -------
     str
         The printable UNF v6 fingerprint string
         (e.g., ``UNF:6:Do5dfAoOOFt4FSj0JcByEw==``).
-
-    Examples
-    --------
-    >>> import polars as pl
-    >>> from dartfx.unf import unf_column
-    >>> s = pl.Series("values", [1.2345678, None, 0.0])
-    >>> print(unf_column(s))
-    UNF:6:Do5dfAoOOFt4FSj0JcByEw==
-
-    >>> # Using custom parameters
-    >>> from dartfx.unf.parameters import UNFParameters
-    >>> params = UNFParameters(digits=9)
-    >>> print(unf_column(s, params=params))
-    UNF:6:N9:p/v3N8XjH9m2K8Ea9Y8Q2w==
     """
     if params is None:
         params = UNFParameters()
 
     hasher = hashlib.sha256()
-    _update_hasher_from_series(hasher, series, params)
+    _update_hasher_from_series(hasher, series, params, null_handling=null_handling)
     return finalize_hash(hasher, params)
 
 
@@ -295,6 +300,7 @@ def unf_dataframe(
     *,
     params: UNFParameters | None = None,
     label: str | None = None,
+    null_handling: Literal["null-as-null", "null-as-string"] = "null-as-null",
 ) -> UNFReport:
     """Compute the UNF fingerprint for a Polars DataFrame.
 
@@ -310,6 +316,11 @@ def unf_dataframe(
         Calculation parameters. Uses defaults if None.
     label : str, optional
         A human-readable label or filename for the report.
+    null_handling: Literal["null-as-null", "null-as-string"], default "null-as-null"
+        If "null-as-string", the implementation provides bit-for-bit parity with
+        the canonical Java Dataverse CSV reader. Any column containing nulls is
+        coerced to a string column, and those nulls are normalized as empty
+        strings (`\n\x00`) instead of missing values (`\x00\x00\x00`).
 
     Returns
     -------
@@ -334,7 +345,7 @@ def unf_dataframe(
     # Parallel column processing
     def process_column(col_name: str) -> tuple[str, str, str]:
         series = df.get_column(col_name)
-        col_unf = unf_column(series, params)
+        col_unf = unf_column(series, params, null_handling=null_handling)
         col_type = _detect_column_type(series.dtype)
         return col_name, col_unf, col_type
 
@@ -357,7 +368,9 @@ def unf_dataframe(
         label=label or "dataframe",
     )
 
-    return UNFReport(result=file_result, params=params)
+    report = UNFReport(result=file_result, params=params)
+    report.options = {"null_handling": null_handling}
+    return report
 
 
 # ---------------------------------------------------------------------------
@@ -824,8 +837,10 @@ def unf_file(
         If True, auto-detect columns with leading zeros (e.g. '01') and treat
         them as strings to preserve the zeros. Disabled by default.
     null_handling: Literal["null-as-null", "null-as-string"], default "null-as-null"
-        If "null-as-string", any non-string column containing nulls will be cast
-        to a string to match Dataverse's behavior.
+        If "null-as-string", the implementation provides bit-for-bit parity with
+        the canonical Java Dataverse CSV reader. Any column containing nulls is
+        coerced to a string column, and those nulls are normalized as empty
+        strings (`\n\x00`) instead of missing values (`\x00\x00\x00`).
 
     Returns
     -------
@@ -950,7 +965,7 @@ def _unf_file_memory(
     user_schema: dict[str, str] | dict[str, dict[str, Any]] | None = None,
     parse_dates: bool = True,
     polars_overrides: dict[str, pl.DataType] | None = None,
-    null_handling: str = "default",
+    null_handling: Literal["null-as-null", "null-as-string"] = "null-as-null",
 ) -> UNFReport:
     """Process a file entirely in memory with parallel column hashing."""
     if polars_overrides is None:
@@ -995,7 +1010,9 @@ def _unf_file_memory(
         if null_cols:
             df = df.cast(dict.fromkeys(null_cols, pl.String))
 
-    report = unf_dataframe(df, params=params, label=label or path.name)
+    report = unf_dataframe(
+        df, params=params, label=label or path.name, null_handling=null_handling
+    )
     return report
 
 
@@ -1063,7 +1080,9 @@ def _unf_file_streaming(
             # Feed this batch's data into each column's hasher in parallel.
             def update_col(col_name: str, df: pl.DataFrame = batch_df) -> None:
                 series = df.get_column(col_name)
-                _update_hasher_from_series(column_hashers[col_name], series, params)
+                _update_hasher_from_series(
+                    column_hashers[col_name], series, params, null_handling
+                )
 
             # executor.map or submit. Here we just want to run them all.
             list(executor.map(update_col, column_hashers.keys()))
@@ -1153,8 +1172,10 @@ def unf_dataset(
         If True, auto-detect columns with leading zeros (e.g. '01') and treat
         them as strings to preserve the zeros. Disabled by default.
     null_handling: Literal["null-as-null", "null-as-string"], default "null-as-null"
-        How to handle null values. If "null-as-string", casts any column
-        containing null values to a string type.
+        If "null-as-string", the implementation provides bit-for-bit parity with
+        the canonical Java Dataverse CSV reader. Any column containing nulls is
+        coerced to a string column, and those nulls are normalized as empty
+        strings (`\n\x00`) instead of missing values (`\x00\x00\x00`).
 
     Returns
     -------

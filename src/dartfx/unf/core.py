@@ -906,7 +906,11 @@ def unf_file(
     if streaming is None:
         streaming = should_stream(path)
 
-    if streaming and null_handling == "null-as-string" and suffix in _STAT_EXTENSIONS:
+    if (
+        streaming
+        and null_handling == "null-as-string"
+        and suffix in (_STAT_EXTENSIONS | _CSV_EXTENSIONS)
+    ):
         logger.warning(
             "Streaming is strictly disabled for %s files when using "
             "'null-as-strings' in order to guarantee correct null inferences. "
@@ -970,14 +974,6 @@ def _unf_file_memory(
     """Process a file entirely in memory with parallel column hashing."""
     if polars_overrides is None:
         polars_overrides = {}
-
-    if null_handling == "null-as-string" and suffix == ".parquet":
-        # Fast metadata check for Parquet files before streaming
-        lf = pl.scan_parquet(path)
-        null_counts = lf.select(pl.all().null_count()).collect().row(0)
-        for col, count in zip(lf.columns, null_counts, strict=True):
-            if count > 0 and lf.schema[col] != pl.String:
-                polars_overrides[col] = pl.String()
 
     if suffix == ".parquet":
         df = pl.read_parquet(path)

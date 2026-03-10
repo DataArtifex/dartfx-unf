@@ -163,7 +163,7 @@ def _build_parser() -> argparse.ArgumentParser:
     # --- null handling ---
     null_group = parser.add_mutually_exclusive_group()
     null_group.add_argument(
-        "--null-as-strings",
+        "--null-as-string",
         dest="null_handling",
         action="store_const",
         const="null-as-string",
@@ -173,7 +173,7 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     null_group.add_argument(
-        "--null-as-nulls",
+        "--null-as-null",
         dest="null_handling",
         action="store_const",
         const="null-as-null",

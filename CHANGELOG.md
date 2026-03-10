@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file.
 - **Alignment with Java Dataverse implementation**:
     - Stripped `UNF:6:` headers from column UNFs before combination (aggregation).
     - Added "Dataverse-parity" mode for null handling (treating empty CSV fields as empty strings).
-- Added `--leading-zeros` and `--null-as-strings` CLI flags.
+- Added `--leading-zeros` and `--null-as-string` CLI flags.
 - Enhanced JSON report schema with a new `metadata.options` field for full run traceability.
 - Refactored internal schema handling and deduplicated Polars type override logic.
 - Modernized internal Polars field types (transitioned from `Utf8` to `String`).

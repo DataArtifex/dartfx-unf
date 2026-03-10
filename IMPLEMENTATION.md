@@ -114,7 +114,7 @@ The following features have been successfully integrated:
 9. **Statistical Format Support**: Integrated `pyreadstat` for native processing of SAS, Stata, and SPSS files, ensuring consistency between statistical packages and raw formats.
 10. **Leading Zero Detection**: Implemented a "code list" protection heuristic that automatically identifies and preserves leading zeros in CSV columns as strings.
 11. **Settings Traceability**: Added an `options` field to JSON reports, recording every parameter (streaming, batch size, etc.) used for the run.
-12. **Null Handling**: Added support for configuring null handling (`--null-as-strings` and `--null-as-nulls`) to perfectly align outputs with the canonical Java Dataverse implementation.
+12. **Null Handling**: Added support for configuring null handling (`--null-as-string` and `--null-as-null`) to perfectly align outputs with the canonical Java Dataverse implementation.
 
 
 ## Roadmap & Phases

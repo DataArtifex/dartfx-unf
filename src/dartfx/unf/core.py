@@ -491,7 +491,7 @@ def _iter_batches(
     elif suffix in _STAT_EXTENSIONS:
         yield from _iter_batches_stat(path, suffix, batch_size)
     else:
-        yield from _iter_batches_parquet(path, batch_size)
+        yield from _iter_batches_parquet(path, batch_size, schema_overrides)
 
 
 def _iter_batches_csv(
@@ -522,13 +522,24 @@ def _iter_batches_csv(
 def _iter_batches_parquet(
     path: Path,
     batch_size: int,
+    schema_overrides: dict[str, pl.DataType] | None = None,
 ) -> Iterator[pl.DataFrame]:
     """Yield Parquet row batches via ``pyarrow.parquet``."""
     import pyarrow.parquet as pq
 
     pf = pq.ParquetFile(path)
     for record_batch in pf.iter_batches(batch_size=batch_size):
-        yield cast(pl.DataFrame, pl.from_arrow(record_batch))
+        df = cast(pl.DataFrame, pl.from_arrow(record_batch))
+        if schema_overrides:
+            # Only cast columns that exist in the dataframe to avoid errors
+            overrides = {
+                k: v
+                for k, v in schema_overrides.items()
+                if k in df.columns and df[k].dtype != v
+            }
+            if overrides:
+                df = df.cast(overrides)
+        yield df
 
 
 def _get_pyreadstat_func(suffix: str) -> Callable[..., Any]:
@@ -913,7 +924,7 @@ def unf_file(
     ):
         logger.warning(
             "Streaming is strictly disabled for %s files when using "
-            "'null-as-strings' in order to guarantee correct null inferences. "
+            "'--null-as-string' in order to guarantee correct null inferences. "
             "Forcing in-memory mode.",
             suffix,
         )
@@ -1044,8 +1055,9 @@ def _unf_file_streaming(
         # Fast metadata check for Parquet files before streaming
         lf = pl.scan_parquet(path)
         null_counts = lf.select(pl.all().null_count()).collect().row(0)
-        for col, count in zip(lf.columns, null_counts, strict=True):
-            if count > 0 and lf.schema[col] != pl.String:
+        lf_schema = lf.collect_schema()
+        for col, count in zip(lf_schema.names(), null_counts, strict=True):
+            if count > 0 and lf_schema[col] != pl.String:
                 polars_overrides[col] = pl.String()
 
     with ThreadPoolExecutor() as executor:

@@ -41,8 +41,8 @@ uv run dartfx-unf file1.csv file2.parquet file3.tsv
 *   **`--no-parse-date`**: Disable automatic date parsing.
 *   **`--leading-zeros`**: Auto-detect columns with leading zeros (e.g. '01') and treat them as strings to preserve the zeros.
 *   **`--no-leading-zeros`**: Disable automatic leading zero detection (default for performance).
-*   **`--null-as-strings`**: Enable "Dataverse-parity" mode. Treats columns with null values as string columns and normalizes those nulls as empty strings (`\n\x00`) instead of the default missing value representation (`\x00\x00\x00`).
-*   **`--null-as-nulls`**: Treat nulls as missing values per the UNF specification (default).
+*   **`--null-as-string`**: Enable "Dataverse-parity" mode. Treats columns with null values as string columns and normalizes those nulls as empty strings (`\n\x00`) instead of the default missing value representation (`\x00\x00\x00`).
+*   **`--null-as-null`**: Treat nulls as missing values per the UNF specification (default).
 
 ### Schema Specification
 
@@ -142,7 +142,7 @@ The UNF v6 specification distinguishes between **missing values** (normalized to
 
 However, the canonical Java Dataverse implementation uses a simplified CSV parser that treats empty fields (e.g., `,,`) as literal empty strings (`""`) rather than missing values. This leads to divergent hashes when comparing Dataverse-generated UNFs with standard-compliant tools.
 
-To achieve bit-for-bit parity with Dataverse for CSV files, `dartfx-unf` provides the `--null-as-strings` flag (or `null_handling="null-as-string"` in the API). When active:
+To achieve bit-for-bit parity with Dataverse for CSV files, `dartfx-unf` provides the `--null-as-string` flag (or `null_handling="null-as-string"` in the API). When active:
 1.  Any column containing nulls is automatically treated as a **String** column.
 2.  `null` values in these columns are normalized as **empty strings** (`\n\x00`) to match Dataverse's internal representation.
 

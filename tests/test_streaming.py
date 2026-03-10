@@ -156,6 +156,20 @@ class TestStreamingEquivalence:
 
         assert mem_col_unfs == stream_col_unfs
 
+    def test_parquet_null_as_string_streaming(self, tmp_path: Path) -> None:
+        import polars as pl
+
+        df = pl.DataFrame({"col_a": [1, 2, None, 4], "col_b": ["a", "b", None, "d"]})
+        path = tmp_path / "nulls.parquet"
+        df.write_parquet(path)
+
+        report_mem = unf_file(path, streaming=False, null_handling="null-as-string")
+        report_stream = unf_file(
+            path, streaming=True, batch_size=2, null_handling="null-as-string"
+        )
+
+        assert report_mem.result.unf == report_stream.result.unf
+
     def test_dates_streaming_matches_memory(self, date_csv: Path) -> None:
         report_mem = unf_file(date_csv, streaming=False)
         report_stream = unf_file(date_csv, streaming=True, batch_size=3)

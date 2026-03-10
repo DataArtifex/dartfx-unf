@@ -3,7 +3,7 @@
 ## Executive Summary
 A discrepancy was identified between the `dartfx-unf` (Python) and `UNF-dataverse` (Java) implementations when processing CSV files containing null values (empty fields) in string columns. While both tools aim to follow the UNF v6 specification, their underlying CSV parsing libraries handle empty fields differently, leading to divergent fingerprints.
 
-`dartfx-unf` has been updated to provide a "Dataverse-parity" mode via the `--null-as-strings` option, which aligns the Python implementation's behavior with the canonical Java one.
+`dartfx-unf` has been updated to provide a "Dataverse-parity" mode via the `--null-as-string` option, which aligns the Python implementation's behavior with the canonical Java one.
 
 ## Root Cause Analysis
 
@@ -35,16 +35,16 @@ Testing on the user-provided `pub1225.csv` dataset confirmed this finding:
 
 ## Resolution in `dartfx-unf`
 
-The `null-as-string` handling mode in `dartfx-unf` (activated by `--null-as-strings` on the CLI) has been enhanced to:
+The `null-as-string` handling mode in `dartfx-unf` (activated by `--null-as-string` on the CLI) has been enhanced to:
 1.  **Force String Casting**: Identify columns with nulls and treat them as string columns.
 2.  **Parity Normalization**: Treat `null` values in these columns as empty strings (`\n\x00`) instead of missing values (`\x00\x00\x00`).
 
 ### Recommended Usage for Dataverse Alignment
 To ensure maximum compatibility with the Dataverse Java implementation, use the following flags:
 ```bash
-dartfx-unf /path/to/data.csv --null-as-strings --scan-length -1
+dartfx-unf /path/to/data.csv --null-as-string --scan-length -1
 ```
-*   `--null-as-strings`: Activates Dataverse-compatible null and string handling.
+*   `--null-as-string`: Activates Dataverse-compatible null and string handling.
 *   `--scan-length -1`: Ensures the entire file is scanned for nulls and leading zeros, preventing incorrect numeric inference.
 
 ## Conclusion

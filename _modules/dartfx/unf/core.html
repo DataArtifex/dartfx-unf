@@ -578,7 +578,7 @@
     <span class="k">elif</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="n">_STAT_EXTENSIONS</span><span class="p">:</span>
         <span class="k">yield from</span> <span class="n">_iter_batches_stat</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">yield from</span> <span class="n">_iter_batches_parquet</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+        <span class="k">yield from</span> <span class="n">_iter_batches_parquet</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">schema_overrides</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_iter_batches_csv</span><span class="p">(</span>
@@ -609,13 +609,24 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_iter_batches_parquet</span><span class="p">(</span>
     <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">schema_overrides</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataType</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Yield Parquet row batches via ``pyarrow.parquet``.&quot;&quot;&quot;</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.parquet</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pq</span>
 
     <span class="n">pf</span> <span class="o">=</span> <span class="n">pq</span><span class="o">.</span><span class="n">ParquetFile</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">record_batch</span> <span class="ow">in</span> <span class="n">pf</span><span class="o">.</span><span class="n">iter_batches</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">):</span>
-        <span class="k">yield</span> <span class="n">cast</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">from_arrow</span><span class="p">(</span><span class="n">record_batch</span><span class="p">))</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">from_arrow</span><span class="p">(</span><span class="n">record_batch</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">schema_overrides</span><span class="p">:</span>
+            <span class="c1"># Only cast columns that exist in the dataframe to avoid errors</span>
+            <span class="n">overrides</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">k</span><span class="p">:</span> <span class="n">v</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">schema_overrides</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="n">df</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">v</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="n">overrides</span><span class="p">:</span>
+                <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">overrides</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">df</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_pyreadstat_func</span><span class="p">(</span><span class="n">suffix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
@@ -965,6 +976,10 @@
         <span class="n">parse_schema_input</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">return_full_schema</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="n">schema</span> <span class="k">else</span> <span class="p">{}</span>
     <span class="p">)</span>
 
+    <span class="c1"># Force full file scan for CSV schemas if null-as-string is requested</span>
+    <span class="k">if</span> <span class="n">null_handling</span> <span class="o">==</span> <span class="s2">&quot;null-as-string&quot;</span> <span class="ow">and</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="n">_CSV_EXTENSIONS</span><span class="p">:</span>
+        <span class="n">infer_schema_length</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
     <span class="c1"># Auto-detect overrides for CSV files (leading zeros, null-as-string)</span>
     <span class="k">if</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="n">_CSV_EXTENSIONS</span><span class="p">:</span>
         <span class="n">csv_overrides</span> <span class="o">=</span> <span class="n">_detect_csv_overrides</span><span class="p">(</span>
@@ -995,10 +1010,10 @@
     <span class="k">if</span> <span class="n">streaming</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">streaming</span> <span class="o">=</span> <span class="n">should_stream</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">streaming</span> <span class="ow">and</span> <span class="n">null_handling</span> <span class="o">==</span> <span class="s2">&quot;null-as-string&quot;</span> <span class="ow">and</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="n">_STAT_EXTENSIONS</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">streaming</span> <span class="ow">and</span> <span class="n">null_handling</span> <span class="o">==</span> <span class="s2">&quot;null-as-string&quot;</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
             <span class="s2">&quot;Streaming is strictly disabled for </span><span class="si">%s</span><span class="s2"> files when using &quot;</span>
-            <span class="s2">&quot;&#39;null-as-strings&#39; in order to guarantee correct null inferences. &quot;</span>
+            <span class="s2">&quot;&#39;--null-as-string&#39; in order to guarantee correct null inferences. &quot;</span>
             <span class="s2">&quot;Forcing in-memory mode.&quot;</span><span class="p">,</span>
             <span class="n">suffix</span><span class="p">,</span>
         <span class="p">)</span>
@@ -1060,14 +1075,6 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Process a file entirely in memory with parallel column hashing.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">polars_overrides</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">polars_overrides</span> <span class="o">=</span> <span class="p">{}</span>
-
-    <span class="k">if</span> <span class="n">null_handling</span> <span class="o">==</span> <span class="s2">&quot;null-as-string&quot;</span> <span class="ow">and</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.parquet&quot;</span><span class="p">:</span>
-        <span class="c1"># Fast metadata check for Parquet files before streaming</span>
-        <span class="n">lf</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">scan_parquet</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-        <span class="n">null_counts</span> <span class="o">=</span> <span class="n">lf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">null_count</span><span class="p">())</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span><span class="o">.</span><span class="n">row</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">lf</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span> <span class="n">null_counts</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">count</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">lf</span><span class="o">.</span><span class="n">schema</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">!=</span> <span class="n">pl</span><span class="o">.</span><span class="n">String</span><span class="p">:</span>
-                <span class="n">polars_overrides</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">String</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.parquet&quot;</span><span class="p">:</span>
         <span class="n">df</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">read_parquet</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
@@ -1133,14 +1140,6 @@
 
     <span class="k">if</span> <span class="n">polars_overrides</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">polars_overrides</span> <span class="o">=</span> <span class="p">{}</span>
-
-    <span class="k">if</span> <span class="n">null_handling</span> <span class="o">==</span> <span class="s2">&quot;null-as-string&quot;</span> <span class="ow">and</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.parquet&quot;</span><span class="p">:</span>
-        <span class="c1"># Fast metadata check for Parquet files before streaming</span>
-        <span class="n">lf</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">scan_parquet</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-        <span class="n">null_counts</span> <span class="o">=</span> <span class="n">lf</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">null_count</span><span class="p">())</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span><span class="o">.</span><span class="n">row</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">lf</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span> <span class="n">null_counts</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">count</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">lf</span><span class="o">.</span><span class="n">schema</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">!=</span> <span class="n">pl</span><span class="o">.</span><span class="n">String</span><span class="p">:</span>
-                <span class="n">polars_overrides</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">String</span><span class="p">()</span>
 
     <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">()</span> <span class="k">as</span> <span class="n">executor</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">_batch_idx</span><span class="p">,</span> <span class="n">batch_df</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>

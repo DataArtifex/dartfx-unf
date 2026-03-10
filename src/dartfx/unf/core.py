@@ -887,6 +887,10 @@ def unf_file(
         parse_schema_input(schema, return_full_schema=True) if schema else {}
     )
 
+    # Force full file scan for CSV schemas if null-as-string is requested
+    if null_handling == "null-as-string" and suffix in _CSV_EXTENSIONS:
+        infer_schema_length = -1
+
     # Auto-detect overrides for CSV files (leading zeros, null-as-string)
     if suffix in _CSV_EXTENSIONS:
         csv_overrides = _detect_csv_overrides(
@@ -917,11 +921,7 @@ def unf_file(
     if streaming is None:
         streaming = should_stream(path)
 
-    if (
-        streaming
-        and null_handling == "null-as-string"
-        and suffix in (_STAT_EXTENSIONS | _CSV_EXTENSIONS)
-    ):
+    if streaming and null_handling == "null-as-string":
         logger.warning(
             "Streaming is strictly disabled for %s files when using "
             "'--null-as-string' in order to guarantee correct null inferences. "
@@ -1050,15 +1050,6 @@ def _unf_file_streaming(
 
     if polars_overrides is None:
         polars_overrides = {}
-
-    if null_handling == "null-as-string" and suffix == ".parquet":
-        # Fast metadata check for Parquet files before streaming
-        lf = pl.scan_parquet(path)
-        null_counts = lf.select(pl.all().null_count()).collect().row(0)
-        lf_schema = lf.collect_schema()
-        for col, count in zip(lf_schema.names(), null_counts, strict=True):
-            if count > 0 and lf_schema[col] != pl.String:
-                polars_overrides[col] = pl.String()
 
     with ThreadPoolExecutor() as executor:
         for _batch_idx, batch_df in enumerate(

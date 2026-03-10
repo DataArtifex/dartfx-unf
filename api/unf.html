@@ -191,7 +191,7 @@ when the file size exceeds a fraction of available system memory.  This
 can also be controlled explicitly via the <code class="docutils literal notranslate"><span class="pre">streaming</span></code> parameter.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="dartfx.unf.core.unf_column">
-<span class="sig-prename descclassname"><span class="pre">dartfx.unf.core.</span></span><span class="sig-name descname"><span class="pre">unf_column</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">series</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#dartfx.unf.parameters.UNFParameters" title="dartfx.unf.parameters.UNFParameters"><span class="pre">UNFParameters</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/dartfx/unf/core.html#unf_column"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dartfx.unf.core.unf_column" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">dartfx.unf.core.</span></span><span class="sig-name descname"><span class="pre">unf_column</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">series</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#dartfx.unf.parameters.UNFParameters" title="dartfx.unf.parameters.UNFParameters"><span class="pre">UNFParameters</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">null_handling</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'null-as-null'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'null-as-string'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'null-as-null'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/dartfx/unf/core.html#unf_column"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dartfx.unf.core.unf_column" title="Link to this definition"></a></dt>
 <dd><p>Compute the UNF fingerprint of a single data vector (Polars Series).</p>
 <p>This function implements the UNF v6 specification for individual vectors, including
 type-specific normalization (numeric rounding, string truncation, bit-field
@@ -204,6 +204,10 @@ dtypes including Integers, Floats, Strings (Utf8), Booleans, Dates, Datetimes,
 and Durations.</p></li>
 <li><p><strong>params</strong> (<a class="reference internal" href="#dartfx.unf.parameters.UNFParameters" title="dartfx.unf.parameters.UNFParameters"><em>UNFParameters</em></a><em>, </em><em>optional</em>) – Calculation parameters (digits, hash bits, etc.). If None, default UNF v6
 settings are used (N=7, H=128, X=128).</p></li>
+<li><p><strong>null_handling</strong> (<em>Literal</em><em>[</em><em>&quot;null-as-null&quot;</em><em>, </em><em>&quot;null-as-string&quot;</em><em>]</em><em>, </em><em>default &quot;null-as-null&quot;</em>) – If “null-as-string”, null values in string-like columns are normalized as
+empty strings (newline + null byte) instead of the UNF missing value
+representation (3 null bytes). This provides parity with the canonical
+Java Dataverse implementation’s CSV parsing behavior.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -214,46 +218,36 @@ settings are used (N=7, H=128, X=128).</p></li>
 <dd class="field-odd"><p>str</p>
 </dd>
 </dl>
-<p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">dartfx.unf</span><span class="w"> </span><span class="kn">import</span> <span class="n">unf_column</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="s2">&quot;values&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">1.2345678</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">unf_column</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
-<span class="go">UNF:6:Do5dfAoOOFt4FSj0JcByEw==</span>
-</pre></div>
-</div>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Using custom parameters</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">dartfx.unf.parameters</span><span class="w"> </span><span class="kn">import</span> <span class="n">UNFParameters</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">params</span> <span class="o">=</span> <span class="n">UNFParameters</span><span class="p">(</span><span class="n">digits</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">unf_column</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">))</span>
-<span class="go">UNF:6:N9:p/v3N8XjH9m2K8Ea9Y8Q2w==</span>
-</pre></div>
-</div>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="dartfx.unf.core.unf_dataframe">
-<span class="sig-prename descclassname"><span class="pre">dartfx.unf.core.</span></span><span class="sig-name descname"><span class="pre">unf_dataframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#dartfx.unf.parameters.UNFParameters" title="dartfx.unf.parameters.UNFParameters"><span class="pre">UNFParameters</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#dartfx.unf.report.UNFReport" title="dartfx.unf.report.UNFReport"><span class="pre">UNFReport</span></a></span></span><a class="reference internal" href="../_modules/dartfx/unf/core.html#unf_dataframe"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dartfx.unf.core.unf_dataframe" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">dartfx.unf.core.</span></span><span class="sig-name descname"><span class="pre">unf_dataframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#dartfx.unf.parameters.UNFParameters" title="dartfx.unf.parameters.UNFParameters"><span class="pre">UNFParameters</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">null_handling</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'null-as-null'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'null-as-string'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'null-as-null'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#dartfx.unf.report.UNFReport" title="dartfx.unf.report.UNFReport"><span class="pre">UNFReport</span></a></span></span><a class="reference internal" href="../_modules/dartfx/unf/core.html#unf_dataframe"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dartfx.unf.core.unf_dataframe" title="Link to this definition"></a></dt>
 <dd><p>Compute the UNF fingerprint for a Polars DataFrame.</p>
-<p>Implements the “combination” rule for dataframes: individual column hashes are
+<blockquote>
+<div><p>Implements the “combination” rule for dataframes: individual column hashes are
 sorted lexicographically and then hashed together to form the table-level
 fingerprint. This ensures that the UNF is invariant to column order.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<em>pl.DataFrame</em>) – The Polars DataFrame to fingerprint.</p></li>
-<li><p><strong>params</strong> (<a class="reference internal" href="#dartfx.unf.parameters.UNFParameters" title="dartfx.unf.parameters.UNFParameters"><em>UNFParameters</em></a><em>, </em><em>optional</em>) – Calculation parameters. Uses defaults if None.</p></li>
-<li><p><strong>label</strong> (<em>str</em><em>, </em><em>optional</em>) – A human-readable label or filename for the report.</p></li>
-</ul>
+<dl class="simple">
+<dt>df<span class="classifier">pl.DataFrame</span></dt><dd><p>The Polars DataFrame to fingerprint.</p>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A structured report containing the final UNF, individual column UNFs, and types.</p>
+<dt>params<span class="classifier">UNFParameters, optional</span></dt><dd><p>Calculation parameters. Uses defaults if None.</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#dartfx.unf.report.UNFReport" title="dartfx.unf.report.UNFReport">UNFReport</a></p>
+<dt>label<span class="classifier">str, optional</span></dt><dd><p>A human-readable label or filename for the report.</p>
+</dd>
+<dt>null_handling: Literal[“null-as-null”, “null-as-string”], default “null-as-null”</dt><dd><p>If “null-as-string”, the implementation provides bit-for-bit parity with
+the canonical Java Dataverse CSV reader. Any column containing nulls is
+coerced to a string column, and those nulls are normalized as empty
+strings (`</p>
 </dd>
 </dl>
-<p class="rubric">Examples</p>
+</div></blockquote>
+<p>`) instead of missing values (<cite></cite>).</p>
+<blockquote>
+<div><dl class="simple">
+<dt>UNFReport</dt><dd><p>A structured report containing the final UNF, individual column UNFs, and types.</p>
+</dd>
+</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">polars</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pl</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">dartfx.unf</span><span class="w"> </span><span class="kn">import</span> <span class="n">unf_dataframe</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="s2">&quot;b&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">3.5</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">]})</span>
@@ -265,91 +259,112 @@ fingerprint. This ensures that the UNF is invariant to column order.</p>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">col</span><span class="o">.</span><span class="n">unf</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
+</div></blockquote>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="dartfx.unf.core.unf_dataset">
 <span class="sig-prename descclassname"><span class="pre">dartfx.unf.core.</span></span><span class="sig-name descname"><span class="pre">unf_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#dartfx.unf.parameters.UNFParameters" title="dartfx.unf.parameters.UNFParameters"><span class="pre">UNFParameters</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">streaming</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infer_schema_length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parse_dates</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detect_leading_zeros</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">null_handling</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'null-as-null'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'null-as-string'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'null-as-null'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#dartfx.unf.report.UNFReport" title="dartfx.unf.report.UNFReport"><span class="pre">UNFReport</span></a></span></span><a class="reference internal" href="../_modules/dartfx/unf/core.html#unf_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dartfx.unf.core.unf_dataset" title="Link to this definition"></a></dt>
 <dd><p>Compute the combined UNF of multiple files (e.g. a partitioned dataset).</p>
-<p>Equivalent to the UNF of a collection of files as per UNF v6 §IIb.
+<blockquote>
+<div><p>Equivalent to the UNF of a collection of files as per UNF v6 §IIb.
 Individual file fingerprints are computed, sorted lexicographically, and hashed.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>paths</strong> (<em>list</em><em> of </em><em>Path</em><em> or </em><em>str</em>) – List of files to process.</p></li>
-<li><p><strong>params</strong> (<a class="reference internal" href="#dartfx.unf.parameters.UNFParameters" title="dartfx.unf.parameters.UNFParameters"><em>UNFParameters</em></a><em>, </em><em>optional</em>) – Common parameters for all files.</p></li>
-<li><p><strong>label</strong> (<em>str</em><em>, </em><em>optional</em>) – Label for the entire dataset.</p></li>
-<li><p><strong>streaming</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to use streaming mode for individual files.</p></li>
-<li><p><strong>batch_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Rows per batch for streaming.</p></li>
-<li><p><strong>infer_schema_length</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of rows to scan for CSV schema inference. Use -1 to scan all rows.</p></li>
-<li><p><strong>schema</strong> (<em>str</em><em>, </em><em>Path</em><em>, </em><em>dict</em><em>, or </em><em>None</em>) – Optional schema specification to override type inference for all files.
-Same format as in <code class="docutils literal notranslate"><span class="pre">unf_file()</span></code>.</p></li>
-<li><p><strong>parse_dates</strong> (<em>bool</em><em>, </em><em>default True</em>) – If True, attempt to auto-parse date and datetime columns in CSV files.</p></li>
-<li><p><strong>detect_leading_zeros</strong> (<em>bool</em><em>, </em><em>default False</em>) – If True, auto-detect columns with leading zeros (e.g. ‘01’) and treat
-them as strings to preserve the zeros. Disabled by default.</p></li>
-<li><p><strong>null_handling</strong> (<em>Literal</em><em>[</em><em>&quot;null-as-null&quot;</em><em>, </em><em>&quot;null-as-string&quot;</em><em>]</em><em>, </em><em>default &quot;null-as-null&quot;</em>) – How to handle null values. If “null-as-string”, casts any column
-containing null values to a string type.</p></li>
-</ul>
+<dl class="simple">
+<dt>paths<span class="classifier">list of Path or str</span></dt><dd><p>List of files to process.</p>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A report containing the dataset-level UNF and a collection of file-level
-results.</p>
+<dt>params<span class="classifier">UNFParameters, optional</span></dt><dd><p>Common parameters for all files.</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#dartfx.unf.report.UNFReport" title="dartfx.unf.report.UNFReport">UNFReport</a></p>
+<dt>label<span class="classifier">str, optional</span></dt><dd><p>Label for the entire dataset.</p>
+</dd>
+<dt>streaming<span class="classifier">bool, optional</span></dt><dd><p>Whether to use streaming mode for individual files.</p>
+</dd>
+<dt>batch_size<span class="classifier">int, optional</span></dt><dd><p>Rows per batch for streaming.</p>
+</dd>
+<dt>infer_schema_length<span class="classifier">int, optional</span></dt><dd><p>Number of rows to scan for CSV schema inference. Use -1 to scan all rows.</p>
+</dd>
+<dt>schema<span class="classifier">str, Path, dict, or None</span></dt><dd><p>Optional schema specification to override type inference for all files.
+Same format as in <code class="docutils literal notranslate"><span class="pre">unf_file()</span></code>.</p>
+</dd>
+<dt>parse_dates<span class="classifier">bool, default True</span></dt><dd><p>If True, attempt to auto-parse date and datetime columns in CSV files.</p>
+</dd>
+<dt>detect_leading_zeros<span class="classifier">bool, default False</span></dt><dd><p>If True, auto-detect columns with leading zeros (e.g. ‘01’) and treat
+them as strings to preserve the zeros. Disabled by default.</p>
+</dd>
+<dt>null_handling: Literal[“null-as-null”, “null-as-string”], default “null-as-null”</dt><dd><p>If “null-as-string”, the implementation provides bit-for-bit parity with
+the canonical Java Dataverse CSV reader. Any column containing nulls is
+coerced to a string column, and those nulls are normalized as empty
+strings (`</p>
 </dd>
 </dl>
-<p class="rubric">Examples</p>
+</div></blockquote>
+<p>`) instead of missing values (<cite></cite>).</p>
+<blockquote>
+<div><dl class="simple">
+<dt>UNFReport</dt><dd><p>A report containing the dataset-level UNF and a collection of file-level
+results.</p>
+</dd>
+</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">dartfx.unf</span><span class="w"> </span><span class="kn">import</span> <span class="n">unf_dataset</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;part-1.parquet&quot;</span><span class="p">,</span> <span class="s2">&quot;part-2.parquet&quot;</span><span class="p">]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">ds_report</span> <span class="o">=</span> <span class="n">unf_dataset</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Version_1&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unified UNF: </span><span class="si">{</span><span class="n">ds_report</span><span class="o">.</span><span class="n">result</span><span class="o">.</span><span class="n">unf</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
+</div></blockquote>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="dartfx.unf.core.unf_file">
 <span class="sig-prename descclassname"><span class="pre">dartfx.unf.core.</span></span><span class="sig-name descname"><span class="pre">unf_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#dartfx.unf.parameters.UNFParameters" title="dartfx.unf.parameters.UNFParameters"><span class="pre">UNFParameters</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">streaming</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infer_schema_length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parse_dates</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detect_leading_zeros</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">null_handling</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'null-as-null'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'null-as-string'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'null-as-null'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#dartfx.unf.report.UNFReport" title="dartfx.unf.report.UNFReport"><span class="pre">UNFReport</span></a></span></span><a class="reference internal" href="../_modules/dartfx/unf/core.html#unf_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dartfx.unf.core.unf_file" title="Link to this definition"></a></dt>
 <dd><p>Compute the UNF fingerprint for a CSV or Parquet data file.</p>
-<p>This is the main entry point for file-based fingerprinting. It handles schema
+<blockquote>
+<div><p>This is the main entry point for file-based fingerprinting. It handles schema
 inference, format detection, and performance optimization based on file size.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>path</strong> (<em>str</em><em> or </em><em>Path</em>) – Path to a CSV or Parquet data file.</p></li>
-<li><p><strong>params</strong> (<a class="reference internal" href="#dartfx.unf.parameters.UNFParameters" title="dartfx.unf.parameters.UNFParameters"><em>UNFParameters</em></a><em>, </em><em>optional</em>) – Normalization parameters (digits, characters, hash_bits, truncate).</p></li>
-<li><p><strong>label</strong> (<em>str</em><em>, </em><em>optional</em>) – Human-readable label for the file in the report.</p></li>
-<li><p><strong>streaming</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, force streaming mode (process in batches, constant memory).
+<dl class="simple">
+<dt>path<span class="classifier">str or Path</span></dt><dd><p>Path to a CSV or Parquet data file.</p>
+</dd>
+<dt>params<span class="classifier">UNFParameters, optional</span></dt><dd><p>Normalization parameters (digits, characters, hash_bits, truncate).</p>
+</dd>
+<dt>label<span class="classifier">str, optional</span></dt><dd><p>Human-readable label for the file in the report.</p>
+</dd>
+<dt>streaming<span class="classifier">bool, optional</span></dt><dd><p>If <code class="docutils literal notranslate"><span class="pre">True</span></code>, force streaming mode (process in batches, constant memory).
 If <code class="docutils literal notranslate"><span class="pre">False</span></code>, force in-memory mode. If <code class="docutils literal notranslate"><span class="pre">None</span></code> (the default),
-auto-detect based on file size vs. available system memory.</p></li>
-<li><p><strong>batch_size</strong> (<em>int</em>) – Number of rows per batch in streaming mode (default 100 000).</p></li>
-<li><p><strong>infer_schema_length</strong> (<em>int</em>) – Number of rows to scan for CSV schema inference (default 10 000).
-Use -1 to scan all rows.</p></li>
-<li><p><strong>schema</strong> (<em>str</em><em>, </em><em>Path</em><em>, </em><em>dict</em><em>, or </em><em>None</em>) – Optional schema specification to override type inference.
+auto-detect based on file size vs. available system memory.</p>
+</dd>
+<dt>batch_size<span class="classifier">int</span></dt><dd><p>Number of rows per batch in streaming mode (default 100 000).</p>
+</dd>
+<dt>infer_schema_length<span class="classifier">int</span></dt><dd><p>Number of rows to scan for CSV schema inference (default 10 000).
+Use -1 to scan all rows.</p>
+</dd>
+<dt>schema<span class="classifier">str, Path, dict, or None</span></dt><dd><p>Optional schema specification to override type inference.
 Can be:
 - Path to a JSON Schema file
 - Inline JSON Schema string
 - Dictionary mapping column names to JSON Schema type names
-User-specified types take precedence over inferred types.</p></li>
-<li><p><strong>parse_dates</strong> (<em>bool</em><em>, </em><em>default True</em>) – If True, attempt to auto-parse date and datetime columns in CSV files.</p></li>
-<li><p><strong>detect_leading_zeros</strong> (<em>bool</em><em>, </em><em>default False</em>) – If True, auto-detect columns with leading zeros (e.g. ‘01’) and treat
-them as strings to preserve the zeros. Disabled by default.</p></li>
-<li><p><strong>null_handling</strong> (<em>Literal</em><em>[</em><em>&quot;null-as-null&quot;</em><em>, </em><em>&quot;null-as-string&quot;</em><em>]</em><em>, </em><em>default &quot;null-as-null&quot;</em>) – If “null-as-string”, any non-string column containing nulls will be cast
-to a string to match Dataverse’s behavior.</p></li>
-</ul>
+User-specified types take precedence over inferred types.</p>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A structured report containing column-level and file-level UNFs.</p>
+<dt>parse_dates<span class="classifier">bool, default True</span></dt><dd><p>If True, attempt to auto-parse date and datetime columns in CSV files.</p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="#dartfx.unf.report.UNFReport" title="dartfx.unf.report.UNFReport">UNFReport</a></p>
+<dt>detect_leading_zeros<span class="classifier">bool, default False</span></dt><dd><p>If True, auto-detect columns with leading zeros (e.g. ‘01’) and treat
+them as strings to preserve the zeros. Disabled by default.</p>
 </dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ValueError</strong> – If the file format is not supported or schema is invalid.</p>
+<dt>null_handling: Literal[“null-as-null”, “null-as-string”], default “null-as-null”</dt><dd><p>If “null-as-string”, the implementation provides bit-for-bit parity with
+the canonical Java Dataverse CSV reader. Any column containing nulls is
+coerced to a string column, and those nulls are normalized as empty
+strings (`</p>
 </dd>
 </dl>
-<p class="rubric">Examples</p>
+</div></blockquote>
+<p>`) instead of missing values (<cite></cite>).</p>
+<blockquote>
+<div><dl class="simple">
+<dt>UNFReport</dt><dd><p>A structured report containing column-level and file-level UNFs.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>ValueError</dt><dd><p>If the file format is not supported or schema is invalid.</p>
+</dd>
+</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># With schema file</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span><span class="s2">&quot;data.csv&quot;</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="s2">&quot;schema.json&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt;</span>
@@ -361,6 +376,7 @@ to a string to match Dataverse’s behavior.</p></li>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">report</span> <span class="o">=</span> <span class="n">unf_file</span><span class="p">(</span><span class="s2">&quot;data.csv&quot;</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;age&quot;</span><span class="p">:</span> <span class="s2">&quot;integer&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">})</span>
 </pre></div>
 </div>
+</div></blockquote>
 </dd></dl>
 
 <dl class="py function">

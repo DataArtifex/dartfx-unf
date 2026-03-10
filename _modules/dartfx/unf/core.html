@@ -200,6 +200,7 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_normalize_series</span><span class="p">(</span>
     <span class="n">series</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
     <span class="n">params</span><span class="p">:</span> <span class="n">UNFParameters</span><span class="p">,</span>
+    <span class="n">null_handling</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;null-as-null&quot;</span><span class="p">,</span> <span class="s2">&quot;null-as-string&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;null-as-null&quot;</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalize a Polars Series into a Binary Series of UNF values.</span>
 
@@ -211,7 +212,6 @@
     <span class="n">dtype</span> <span class="o">=</span> <span class="n">series</span><span class="o">.</span><span class="n">dtype</span>
 
     <span class="c1"># 1. Handle Missing Values (UNF v6 §Ia.6)</span>
-    <span class="c1"># We use pl.when/then to handle nulls for ALL types at once.</span>
     <span class="c1"># Note: MISSING_VALUE (b&quot;\x00\x00\x00&quot;) has no terminator.</span>
     <span class="n">null_mask</span> <span class="o">=</span> <span class="n">series</span><span class="o">.</span><span class="n">is_null</span><span class="p">()</span>
 
@@ -236,7 +236,6 @@
     <span class="k">elif</span> <span class="n">dtype</span><span class="o">.</span><span class="n">is_numeric</span><span class="p">():</span>
         <span class="c1"># Numeric still requires Decimal for precise ties-to-even rounding</span>
         <span class="c1"># We use map_elements for strict compliance.</span>
-        <span class="c1"># TODO: Optimize with Rust-based formatter or faster Python logic.</span>
         <span class="n">expr</span> <span class="o">=</span> <span class="n">series</span><span class="o">.</span><span class="n">map_elements</span><span class="p">(</span>
             <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">normalize_numeric</span><span class="p">(</span>
                 <span class="n">x</span><span class="p">,</span> <span class="n">digits</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">digits</span><span class="p">,</span> <span class="n">truncate</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">truncate</span>
@@ -257,11 +256,24 @@
             <span class="n">pl</span><span class="o">.</span><span class="n">Binary</span>
         <span class="p">)</span> <span class="o">+</span> <span class="n">pl</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;</span><span class="se">\n\x00</span><span class="s2">&quot;</span><span class="p">)</span>
 
+    <span class="c1"># 2. Handle nulls based on null_handling mode</span>
+    <span class="k">if</span> <span class="n">null_handling</span> <span class="o">==</span> <span class="s2">&quot;null-as-string&quot;</span> <span class="ow">and</span> <span class="n">dtype</span> <span class="ow">in</span> <span class="p">(</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">Utf8</span><span class="p">,</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">Categorical</span><span class="p">,</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">Enum</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># Dataverse-alignment: Treat nulls in string columns as empty strings (&quot;\n\0&quot;)</span>
+        <span class="c1"># because Dataverse&#39;s CSV reader (String.split) treats empty fields as &quot;&quot;.</span>
+        <span class="n">null_replacement</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\n\x00</span><span class="s2">&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># UNF spec default: missing values are 3 null bytes</span>
+        <span class="n">null_replacement</span> <span class="o">=</span> <span class="n">normalize_missing</span><span class="p">()</span>
+
     <span class="c1"># Apply the expression and handle nulls</span>
     <span class="c1"># We must handle nulls AFTER the expression to avoid map_elements</span>
     <span class="c1"># being called on nulls or expressions failing on nulls.</span>
     <span class="n">final_series</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
-        <span class="n">pl</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">null_mask</span><span class="p">)</span><span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">normalize_missing</span><span class="p">()))</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">null_mask</span><span class="p">)</span><span class="o">.</span><span class="n">then</span><span class="p">(</span><span class="n">pl</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">null_replacement</span><span class="p">))</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
     <span class="p">)</span><span class="o">.</span><span class="n">to_series</span><span class="p">()</span>
 
     <span class="k">return</span> <span class="n">final_series</span>
@@ -276,13 +288,14 @@
     <span class="n">hasher</span><span class="p">:</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">_Hash</span><span class="p">,</span>  <span class="c1"># noqa: SLF001</span>
     <span class="n">series</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
     <span class="n">params</span><span class="p">:</span> <span class="n">UNFParameters</span><span class="p">,</span>
+    <span class="n">null_handling</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;null-as-null&quot;</span><span class="p">,</span> <span class="s2">&quot;null-as-string&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;null-as-null&quot;</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Feed normalised bytes from *series* into a SHA-256 *hasher*.</span>
 
 <span class="sd">    Uses vectorized normalization where possible and joins chunks in C</span>
 <span class="sd">    to minimize Python loop overhead.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">normalized_series</span> <span class="o">=</span> <span class="n">_normalize_series</span><span class="p">(</span><span class="n">series</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+    <span class="n">normalized_series</span> <span class="o">=</span> <span class="n">_normalize_series</span><span class="p">(</span><span class="n">series</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">null_handling</span><span class="o">=</span><span class="n">null_handling</span><span class="p">)</span>
 
     <span class="c1"># We join all normalized bytes into a single blob before updating the hasher.</span>
     <span class="c1"># This replaces thousands of Python-level loop iterations and hasher calls</span>
@@ -302,6 +315,7 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">unf_column</span><span class="p">(</span>
     <span class="n">series</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
     <span class="n">params</span><span class="p">:</span> <span class="n">UNFParameters</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">null_handling</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;null-as-null&quot;</span><span class="p">,</span> <span class="s2">&quot;null-as-string&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;null-as-null&quot;</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the UNF fingerprint of a single data vector (Polars Series).</span>
 
@@ -318,32 +332,23 @@
 <span class="sd">    params : UNFParameters, optional</span>
 <span class="sd">        Calculation parameters (digits, hash bits, etc.). If None, default UNF v6</span>
 <span class="sd">        settings are used (N=7, H=128, X=128).</span>
+<span class="sd">    null_handling: Literal[&quot;null-as-null&quot;, &quot;null-as-string&quot;], default &quot;null-as-null&quot;</span>
+<span class="sd">        If &quot;null-as-string&quot;, null values in string-like columns are normalized as</span>
+<span class="sd">        empty strings (newline + null byte) instead of the UNF missing value</span>
+<span class="sd">        representation (3 null bytes). This provides parity with the canonical</span>
+<span class="sd">        Java Dataverse implementation&#39;s CSV parsing behavior.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    str</span>
 <span class="sd">        The printable UNF v6 fingerprint string</span>
 <span class="sd">        (e.g., ``UNF:6:Do5dfAoOOFt4FSj0JcByEw==``).</span>
-
-<span class="sd">    Examples</span>
-<span class="sd">    --------</span>
-<span class="sd">    &gt;&gt;&gt; import polars as pl</span>
-<span class="sd">    &gt;&gt;&gt; from dartfx.unf import unf_column</span>
-<span class="sd">    &gt;&gt;&gt; s = pl.Series(&quot;values&quot;, [1.2345678, None, 0.0])</span>
-<span class="sd">    &gt;&gt;&gt; print(unf_column(s))</span>
-<span class="sd">    UNF:6:Do5dfAoOOFt4FSj0JcByEw==</span>
-
-<span class="sd">    &gt;&gt;&gt; # Using custom parameters</span>
-<span class="sd">    &gt;&gt;&gt; from dartfx.unf.parameters import UNFParameters</span>
-<span class="sd">    &gt;&gt;&gt; params = UNFParameters(digits=9)</span>
-<span class="sd">    &gt;&gt;&gt; print(unf_column(s, params=params))</span>
-<span class="sd">    UNF:6:N9:p/v3N8XjH9m2K8Ea9Y8Q2w==</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">params</span> <span class="o">=</span> <span class="n">UNFParameters</span><span class="p">()</span>
 
     <span class="n">hasher</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">()</span>
-    <span class="n">_update_hasher_from_series</span><span class="p">(</span><span class="n">hasher</span><span class="p">,</span> <span class="n">series</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+    <span class="n">_update_hasher_from_series</span><span class="p">(</span><span class="n">hasher</span><span class="p">,</span> <span class="n">series</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">null_handling</span><span class="o">=</span><span class="n">null_handling</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">finalize_hash</span><span class="p">(</span><span class="n">hasher</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span></div>
 
 
@@ -381,6 +386,7 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">params</span><span class="p">:</span> <span class="n">UNFParameters</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">null_handling</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;null-as-null&quot;</span><span class="p">,</span> <span class="s2">&quot;null-as-string&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;null-as-null&quot;</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UNFReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the UNF fingerprint for a Polars DataFrame.</span>
 
@@ -396,6 +402,11 @@
 <span class="sd">        Calculation parameters. Uses defaults if None.</span>
 <span class="sd">    label : str, optional</span>
 <span class="sd">        A human-readable label or filename for the report.</span>
+<span class="sd">    null_handling: Literal[&quot;null-as-null&quot;, &quot;null-as-string&quot;], default &quot;null-as-null&quot;</span>
+<span class="sd">        If &quot;null-as-string&quot;, the implementation provides bit-for-bit parity with</span>
+<span class="sd">        the canonical Java Dataverse CSV reader. Any column containing nulls is</span>
+<span class="sd">        coerced to a string column, and those nulls are normalized as empty</span>
+<span class="sd">        strings (`\n\x00`) instead of missing values (`\x00\x00\x00`).</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -420,7 +431,7 @@
     <span class="c1"># Parallel column processing</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">process_column</span><span class="p">(</span><span class="n">col_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
         <span class="n">series</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">get_column</span><span class="p">(</span><span class="n">col_name</span><span class="p">)</span>
-        <span class="n">col_unf</span> <span class="o">=</span> <span class="n">unf_column</span><span class="p">(</span><span class="n">series</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+        <span class="n">col_unf</span> <span class="o">=</span> <span class="n">unf_column</span><span class="p">(</span><span class="n">series</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">null_handling</span><span class="o">=</span><span class="n">null_handling</span><span class="p">)</span>
         <span class="n">col_type</span> <span class="o">=</span> <span class="n">_detect_column_type</span><span class="p">(</span><span class="n">series</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">col_name</span><span class="p">,</span> <span class="n">col_unf</span><span class="p">,</span> <span class="n">col_type</span>
 
@@ -443,7 +454,9 @@
         <span class="n">label</span><span class="o">=</span><span class="n">label</span> <span class="ow">or</span> <span class="s2">&quot;dataframe&quot;</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">UNFReport</span><span class="p">(</span><span class="n">result</span><span class="o">=</span><span class="n">file_result</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span></div>
+    <span class="n">report</span> <span class="o">=</span> <span class="n">UNFReport</span><span class="p">(</span><span class="n">result</span><span class="o">=</span><span class="n">file_result</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">report</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;null_handling&quot;</span><span class="p">:</span> <span class="n">null_handling</span><span class="p">}</span>
+    <span class="k">return</span> <span class="n">report</span></div>
 
 
 
@@ -913,8 +926,10 @@
 <span class="sd">        If True, auto-detect columns with leading zeros (e.g. &#39;01&#39;) and treat</span>
 <span class="sd">        them as strings to preserve the zeros. Disabled by default.</span>
 <span class="sd">    null_handling: Literal[&quot;null-as-null&quot;, &quot;null-as-string&quot;], default &quot;null-as-null&quot;</span>
-<span class="sd">        If &quot;null-as-string&quot;, any non-string column containing nulls will be cast</span>
-<span class="sd">        to a string to match Dataverse&#39;s behavior.</span>
+<span class="sd">        If &quot;null-as-string&quot;, the implementation provides bit-for-bit parity with</span>
+<span class="sd">        the canonical Java Dataverse CSV reader. Any column containing nulls is</span>
+<span class="sd">        coerced to a string column, and those nulls are normalized as empty</span>
+<span class="sd">        strings (`\n\x00`) instead of missing values (`\x00\x00\x00`).</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -1040,7 +1055,7 @@
     <span class="n">user_schema</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">parse_dates</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">polars_overrides</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataType</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">null_handling</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span><span class="p">,</span>
+    <span class="n">null_handling</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;null-as-null&quot;</span><span class="p">,</span> <span class="s2">&quot;null-as-string&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;null-as-null&quot;</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UNFReport</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Process a file entirely in memory with parallel column hashing.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">polars_overrides</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1085,7 +1100,9 @@
         <span class="k">if</span> <span class="n">null_cols</span><span class="p">:</span>
             <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">null_cols</span><span class="p">,</span> <span class="n">pl</span><span class="o">.</span><span class="n">String</span><span class="p">))</span>
 
-    <span class="n">report</span> <span class="o">=</span> <span class="n">unf_dataframe</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span> <span class="ow">or</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">report</span> <span class="o">=</span> <span class="n">unf_dataframe</span><span class="p">(</span>
+        <span class="n">df</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span> <span class="ow">or</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">null_handling</span><span class="o">=</span><span class="n">null_handling</span>
+    <span class="p">)</span>
     <span class="k">return</span> <span class="n">report</span>
 
 
@@ -1153,7 +1170,9 @@
             <span class="c1"># Feed this batch&#39;s data into each column&#39;s hasher in parallel.</span>
             <span class="k">def</span><span class="w"> </span><span class="nf">update_col</span><span class="p">(</span><span class="n">col_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pl</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">=</span> <span class="n">batch_df</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">series</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">get_column</span><span class="p">(</span><span class="n">col_name</span><span class="p">)</span>
-                <span class="n">_update_hasher_from_series</span><span class="p">(</span><span class="n">column_hashers</span><span class="p">[</span><span class="n">col_name</span><span class="p">],</span> <span class="n">series</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+                <span class="n">_update_hasher_from_series</span><span class="p">(</span>
+                    <span class="n">column_hashers</span><span class="p">[</span><span class="n">col_name</span><span class="p">],</span> <span class="n">series</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">null_handling</span>
+                <span class="p">)</span>
 
             <span class="c1"># executor.map or submit. Here we just want to run them all.</span>
             <span class="nb">list</span><span class="p">(</span><span class="n">executor</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">update_col</span><span class="p">,</span> <span class="n">column_hashers</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
@@ -1245,8 +1264,10 @@
 <span class="sd">        If True, auto-detect columns with leading zeros (e.g. &#39;01&#39;) and treat</span>
 <span class="sd">        them as strings to preserve the zeros. Disabled by default.</span>
 <span class="sd">    null_handling: Literal[&quot;null-as-null&quot;, &quot;null-as-string&quot;], default &quot;null-as-null&quot;</span>
-<span class="sd">        How to handle null values. If &quot;null-as-string&quot;, casts any column</span>
-<span class="sd">        containing null values to a string type.</span>
+<span class="sd">        If &quot;null-as-string&quot;, the implementation provides bit-for-bit parity with</span>
+<span class="sd">        the canonical Java Dataverse CSV reader. Any column containing nulls is</span>
+<span class="sd">        coerced to a string column, and those nulls are normalized as empty</span>
+<span class="sd">        strings (`\n\x00`) instead of missing values (`\x00\x00\x00`).</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>

@@ -62,6 +62,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#performance-tuning">Performance Tuning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dataverse-parity-null-handling">Dataverse Parity &amp; Null Handling</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#python-api">Python API</a><ul>
@@ -148,8 +149,8 @@
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">--no-parse-date</span></code></strong>: Disable automatic date parsing.</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">--leading-zeros</span></code></strong>: Auto-detect columns with leading zeros (e.g. ‘01’) and treat them as strings to preserve the zeros.</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">--no-leading-zeros</span></code></strong>: Disable automatic leading zero detection (default for performance).</p></li>
-<li><p><strong><code class="docutils literal notranslate"><span class="pre">--null-as-strings</span></code></strong>: Treat columns with null values as strings (Dataverse behavior).</p></li>
-<li><p><strong><code class="docutils literal notranslate"><span class="pre">--null-as-nulls</span></code></strong>: Treat nulls as nulls without inferring string (default).</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">--null-as-strings</span></code></strong>: Enable “Dataverse-parity” mode. Treats columns with null values as string columns and normalizes those nulls as empty strings (<code class="docutils literal notranslate"><span class="pre">\n\x00</span></code>) instead of the default missing value representation (<code class="docutils literal notranslate"><span class="pre">\x00\x00\x00</span></code>).</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">--null-as-nulls</span></code></strong>: Treat nulls as missing values per the UNF specification (default).</p></li>
 </ul>
 </section>
 <section id="schema-specification">
@@ -240,6 +241,17 @@ uv<span class="w"> </span>run<span class="w"> </span>dartfx-unf<span class="w"> 
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">--batch-size</span> <span class="pre">ROWS</span></code></strong>: Set the batch size for streaming operations (default: 100,000).</p></li>
 <li><p><strong><code class="docutils literal notranslate"><span class="pre">--scan-length</span> <span class="pre">ROWS</span></code></strong>: Number of rows to scan for CSV schema inference (default: 10,000). Use <code class="docutils literal notranslate"><span class="pre">-1</span></code> to scan all rows for more accurate type detection.</p></li>
 </ul>
+</section>
+<section id="dataverse-parity-null-handling">
+<h3>Dataverse Parity &amp; Null Handling<a class="headerlink" href="#dataverse-parity-null-handling" title="Link to this heading"></a></h3>
+<p>The UNF v6 specification distinguishes between <strong>missing values</strong> (normalized to 3 null bytes) and <strong>empty strings</strong> (normalized to <code class="docutils literal notranslate"><span class="pre">\n\0</span></code>).</p>
+<p>However, the canonical Java Dataverse implementation uses a simplified CSV parser that treats empty fields (e.g., <code class="docutils literal notranslate"><span class="pre">,,</span></code>) as literal empty strings (<code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>) rather than missing values. This leads to divergent hashes when comparing Dataverse-generated UNFs with standard-compliant tools.</p>
+<p>To achieve bit-for-bit parity with Dataverse for CSV files, <code class="docutils literal notranslate"><span class="pre">dartfx-unf</span></code> provides the <code class="docutils literal notranslate"><span class="pre">--null-as-strings</span></code> flag (or <code class="docutils literal notranslate"><span class="pre">null_handling=&quot;null-as-string&quot;</span></code> in the API). When active:</p>
+<ol class="arabic simple">
+<li><p>Any column containing nulls is automatically treated as a <strong>String</strong> column.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">null</span></code> values in these columns are normalized as <strong>empty strings</strong> (<code class="docutils literal notranslate"><span class="pre">\n\x00</span></code>) to match Dataverse’s internal representation.</p></li>
+</ol>
+<p>For maximum alignment when verifying Dataverse datasets, it is also recommended to use <code class="docutils literal notranslate"><span class="pre">--scan-length</span> <span class="pre">-1</span></code> to ensure that even a single null far down in a file triggers the correct string-casting behavior.</p>
 </section>
 </section>
 <hr class="docutils" />

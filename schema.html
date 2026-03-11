@@ -388,7 +388,7 @@
 </pre></div>
 </div>
 <p><strong>CSV Data Example:</strong></p>
-<div class="highlight-csv notranslate"><div class="highlight"><pre><span></span>date
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>date
 15.03.2024
 20-05-2024
 2024-02-16
@@ -483,8 +483,8 @@
 <section id="order-independence">
 <h3>Order Independence<a class="headerlink" href="#order-independence" title="Link to this heading"></a></h3>
 <p>The order of types in the list doesn’t matter:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;integer&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;null&quot;</span><span class="p">]}</span><span class="w">    </span><span class="err">#</span><span class="w"> </span><span class="err">←</span><span class="w"> </span><span class="err">i</span><span class="kc">nte</span><span class="err">ger</span><span class="w"> </span><span class="err">will</span><span class="w"> </span><span class="err">be</span><span class="w"> </span><span class="err">used</span>
-<span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;null&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;integer&quot;</span><span class="p">]}</span><span class="w">    </span><span class="err">#</span><span class="w"> </span><span class="err">←</span><span class="w"> </span><span class="err">i</span><span class="kc">nte</span><span class="err">ger</span><span class="w"> </span><span class="err">will</span><span class="w"> </span><span class="err">be</span><span class="w"> </span><span class="err">used</span><span class="w"> </span><span class="err">(same</span><span class="w"> </span><span class="err">resul</span><span class="kc">t</span><span class="err">)</span>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>{&quot;type&quot;: [&quot;integer&quot;, &quot;null&quot;]}    # ← integer will be used
+{&quot;type&quot;: [&quot;null&quot;, &quot;integer&quot;]}    # ← integer will be used (same result)
 </pre></div>
 </div>
 </section>
@@ -498,7 +498,7 @@
 </pre></div>
 </div>
 <p><strong>Example that causes an error:</strong></p>
-<div class="highlight-csv notranslate"><div class="highlight"><pre><span></span>id,name,value
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>id,name,value
 alpha,Alice,100.5
 beta,Bob,200.75
 </pre></div>
@@ -518,7 +518,7 @@ beta,Bob,200.75
 <section id="successful-type-conversions">
 <h3>Successful Type Conversions<a class="headerlink" href="#successful-type-conversions" title="Link to this heading"></a></h3>
 <p><strong>Any type to string</strong> (always succeeds):</p>
-<div class="highlight-csv notranslate"><div class="highlight"><pre><span></span>id,value
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>id,value
 1,100
 2,200
 </pre></div>
@@ -534,7 +534,7 @@ beta,Bob,200.75
 </div>
 <p>Result: ✓ Success. <code class="docutils literal notranslate"><span class="pre">1</span></code> and <code class="docutils literal notranslate"><span class="pre">2</span></code> become <code class="docutils literal notranslate"><span class="pre">&quot;1&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;2&quot;</span></code>.</p>
 <p><strong>String to number</strong> (succeeds if values are numeric):</p>
-<div class="highlight-csv notranslate"><div class="highlight"><pre><span></span>id,amount
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>id,amount
 &quot;1&quot;,&quot;100.5&quot;
 &quot;2&quot;,&quot;200.75&quot;
 </pre></div>
@@ -550,7 +550,7 @@ beta,Bob,200.75
 </div>
 <p>Result: ✓ Success, if all values are validly formatted numbers.</p>
 <p><strong>String to date</strong> (succeeds if format matches schema):</p>
-<div class="highlight-csv notranslate"><div class="highlight"><pre><span></span>date
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>date
 2024-02-16
 2024-02-17
 </pre></div>
@@ -578,7 +578,7 @@ beta,Bob,200.75
 <h3>Date Format Mismatch Errors<a class="headerlink" href="#date-format-mismatch-errors" title="Link to this heading"></a></h3>
 <p><strong>Problem:</strong> Format in schema doesn’t match the actual data.</p>
 <p><strong>Example:</strong></p>
-<div class="highlight-csv notranslate"><div class="highlight"><pre><span></span>date
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>date
 16.02.2024
 17.02.2024
 </pre></div>

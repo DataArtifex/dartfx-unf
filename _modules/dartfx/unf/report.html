@@ -143,19 +143,6 @@
 <span class="sd">    timestamp. It provides built-in methods for serializing the results to</span>
 <span class="sd">    standard JSON formats that comply with the project&#39;s JSON schema.</span>
 
-<span class="sd">    Attributes</span>
-<span class="sd">    ----------</span>
-<span class="sd">    result : FileResult | DatasetResult</span>
-<span class="sd">        The core result of the calculation. A ``FileResult`` contains column-level</span>
-<span class="sd">        UNFs, while a ``DatasetResult`` contains file-level results.</span>
-<span class="sd">    params : UNFParameters</span>
-<span class="sd">        The configuration used (digits, hash_bits, etc.).</span>
-<span class="sd">    timestamp : str, optional</span>
-<span class="sd">        ISO 8601 timestamp of when the report was generated. Set automatically</span>
-<span class="sd">        during initialization if not provided.</span>
-<span class="sd">    unf_version : str, default &quot;6&quot;</span>
-<span class="sd">        The version of the UNF specification used.</span>
-
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
 <span class="sd">    &gt;&gt;&gt; from dartfx.unf import unf_file</span>
@@ -182,10 +169,10 @@
 <div class="viewcode-block" id="UNFReport.to_dict">
 <a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.report.UNFReport.to_dict">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">validate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialise the report to a plain dict matching the JSON schema.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialize the report to a plain dict matching the JSON schema.</span>
 
 <span class="sd">        If *validate* is True, the resulting dict is validated against</span>
-<span class="sd">        the bundled ``unf6_schema.json`` using the ``jsonschema`` library.</span>
+<span class="sd">        the bundled ``unf6.schema.json`` using the ``jsonschema`` library.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">dartfx.unf.serializers</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSONSerializer</span>
 
@@ -196,7 +183,7 @@
 <div class="viewcode-block" id="UNFReport.to_json">
 <a class="viewcode-back" href="../../../api/unf.html#dartfx.unf.report.UNFReport.to_json">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indent</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">validate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialise the report to a JSON string.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialize the report to a JSON string.&quot;&quot;&quot;</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">dartfx.unf.serializers</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSONSerializer</span>
 
         <span class="n">serializer</span> <span class="o">=</span> <span class="n">JSONSerializer</span><span class="p">(</span><span class="n">indent</span><span class="o">=</span><span class="n">indent</span><span class="p">,</span> <span class="n">validate</span><span class="o">=</span><span class="n">validate</span><span class="p">)</span>

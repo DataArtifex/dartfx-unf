@@ -78,7 +78,7 @@ class UNFReport:
         """Serialize the report to a plain dict matching the JSON schema.
 
         If *validate* is True, the resulting dict is validated against
-        the bundled ``unf6.schema.json`` using the ``jsonschema`` library.
+        the bundled ``unf.schema.json`` using the ``jsonschema`` library.
         """
         from dartfx.unf.serializers import JSONSerializer
 

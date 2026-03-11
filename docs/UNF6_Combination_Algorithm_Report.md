@@ -188,7 +188,7 @@ The existing official test vectors (in `unf_examples.txt`) only cover individual
 
 ### 6.3 Establish an Interoperability Test Suite
 
-A shared, language-agnostic test suite (e.g., a JSON file with inputs and expected outputs at each level — normalization, column, file, dataset) would greatly facilitate cross-validation between implementations. The `unf6.schema.json` schema is a good foundation for this.
+A shared, language-agnostic test suite (e.g., a JSON file with inputs and expected outputs at each level — normalization, column, file, dataset) would greatly facilitate cross-validation between implementations. The `unf.schema.json` schema is a good foundation for this.
 
 ---
 

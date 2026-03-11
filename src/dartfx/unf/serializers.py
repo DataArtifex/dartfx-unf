@@ -74,7 +74,7 @@ class JSONSerializer:
         from jsonschema import validate as validate_json
 
         # Find bundled schema
-        schema_resource = files("dartfx.unf").joinpath("unf6.schema.json")
+        schema_resource = files("dartfx.unf").joinpath("unf.schema.json")
         with schema_resource.open(encoding="utf-8") as f:
             schema = json.load(f)
         validate_json(instance=data, schema=schema)

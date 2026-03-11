@@ -17,19 +17,6 @@ class UNFParameters:
     specification. When non-default values are used, they are automatically
     encoded into the resulting UNF header string (e.g., ``UNF:6:N9:...``).
 
-    Attributes
-    ----------
-    digits : int, default 7
-        Number of significant digits for numeric rounding (the ``N`` parameter).
-    characters : int, default 128
-        Maximum number of characters for string truncation (the ``X`` parameter).
-    hash_bits : int, default 128
-        Number of bits to retain from the SHA-256 hash (the ``H`` parameter).
-        Must be one of {128, 192, 196, 256}.
-    truncate : bool, default False
-        If True, use truncation (R1 mode) instead of IEEE 754 "round towards
-        nearest, ties to even" for numeric normalization.
-
     Examples
     --------
     >>> from dartfx.unf.parameters import UNFParameters

@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-"""Serialisers for UNF reports (JSON, human-friendly tables)."""
+"""Serializers for UNF reports (JSON, human-friendly tables)."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 class JSONSerializer:
-    """Serialiser for UNF reports to JSON format.
+    """Serializer for UNF reports to JSON format.
 
     This class encapsulates the logic for converting a ``UNFReport`` object
     into a JSON-compatible dictionary and then into a JSON string.
@@ -74,21 +74,21 @@ class JSONSerializer:
         from jsonschema import validate as validate_json
 
         # Find bundled schema
-        schema_resource = files("dartfx.unf").joinpath("unf6_schema.json")
+        schema_resource = files("dartfx.unf").joinpath("unf6.schema.json")
         with schema_resource.open(encoding="utf-8") as f:
             schema = json.load(f)
         validate_json(instance=data, schema=schema)
 
     def serialize(self, report: UNFReport) -> str:
-        """Serialise the report to a JSON string."""
+        """Serialize the report to a JSON string."""
         return json.dumps(self.to_dict(report), indent=self.indent)
 
 
 class TableSerializer:
-    """Serialiser for UNF reports to human-friendly summary tables."""
+    """Serializer for UNF reports to human-friendly summary tables."""
 
     def serialize(self, report: UNFReport) -> str:
-        """Serialise the report to a formatted summary table string."""
+        """Serialize the report to a formatted summary table string."""
         from dartfx.unf.report import DatasetResult, FileResult
 
         res = report.result

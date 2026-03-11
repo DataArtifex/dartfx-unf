@@ -320,7 +320,7 @@ def unf_dataframe(
         If "null-as-string", the implementation provides bit-for-bit parity with
         the canonical Java Dataverse CSV reader. Any column containing nulls is
         coerced to a string column, and those nulls are normalized as empty
-        strings (`\n\x00`) instead of missing values (`\x00\x00\x00`).
+        strings (`\\n\\x00`) instead of missing values (`\\x00\\x00\\x00`).
 
     Returns
     -------
@@ -851,7 +851,7 @@ def unf_file(
         If "null-as-string", the implementation provides bit-for-bit parity with
         the canonical Java Dataverse CSV reader. Any column containing nulls is
         coerced to a string column, and those nulls are normalized as empty
-        strings (`\n\x00`) instead of missing values (`\x00\x00\x00`).
+        strings (`\\n\\x00`) instead of missing values (`\\x00\\x00\\x00`).
 
     Returns
     -------
@@ -1174,7 +1174,7 @@ def unf_dataset(
         If "null-as-string", the implementation provides bit-for-bit parity with
         the canonical Java Dataverse CSV reader. Any column containing nulls is
         coerced to a string column, and those nulls are normalized as empty
-        strings (`\n\x00`) instead of missing values (`\x00\x00\x00`).
+        strings (`\\n\\x00`) instead of missing values (`\\x00\\x00\\x00`).
 
     Returns
     -------

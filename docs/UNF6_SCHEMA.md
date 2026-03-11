@@ -30,4 +30,4 @@ The UNF specification requires that when combining column UNFs into a File UNF (
 The JSON report preserves the order of columns as they appear in the file for human readability, but the `unf` value at the file/dataset level is calculated using the sorted signatures as per the spec.
 
 ## Validation
-A formal JSON Schema is available at `unf6_schema.json`.
+A formal JSON Schema is available at `unf6.schema.json`.

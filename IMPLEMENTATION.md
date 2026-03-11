@@ -18,8 +18,8 @@ src/dartfx/unf/
 ├── hasher.py         # SHA-256 hashing, incremental + batch (spec §Ib, §II)
 ├── memory.py         # System memory detection & streaming heuristic
 ├── core.py           # High-level API: unf_column, unf_file, unf_dataset
-├── report.py         # UNFReport dataclass with JSON serialisation
-├── unf6_schema.json  # Bundled JSON schema for output validation
+├── report.py         # UNFReport dataclass with JSON serialization
+├── unf6.schema.json  # Bundled JSON schema for output validation
 └── cli.py            # CLI entry point (registered as `dartfx-unf`)
 ```
 
@@ -57,7 +57,7 @@ Input File (.csv / .parquet)
 
 4. **Separation of normalization and hashing.** `normalize.py` produces raw bytes for individual values. `hasher.py` handles SHA-256, truncation, base64 encoding, and the recursive combination algorithm. This separation makes each layer independently testable.
 
-5. **JSON report schema.** The `UNFReport` object serialises to JSON matching the bundled `unf6_schema.json`, providing full traceability from dataset → file → column.
+5. **JSON report schema.** The `UNFReport` object serializes to JSON matching the bundled `unf6.schema.json`, providing full traceability from dataset → file → column.
 
 6. **Memory-aware streaming.** `memory.py` detects available system memory (Linux `/proc/meminfo`, macOS `os.sysconf`, Windows `kernel32`). Files larger than 25% of available memory automatically switch to streaming mode, which uses incremental SHA-256 hashers to achieve O(batch_size) memory usage regardless of total file size.
 
@@ -82,7 +82,7 @@ Input File (.csv / .parquet)
 | §IIb | Dataset UNF | File UNFs sorted and combined. |
 | Footnote | Non-default parameters | N, X, H, R1 embedded in header string. |
 | — | CLI | `dartfx-unf` command with `--quiet`, `--output`, `--verbose`, `--validate`. |
-| — | JSON report | Structured output matching `docs/unf6_schema.json` with schema validation. |
+| — | JSON report | Structured output matching `docs/unf6.schema.json` with schema validation. |
 | — | Schema specification | JSON Schema-based type override for CSV data. Supports file paths, inline JSON, and Python dicts. Ensures consistent type handling across systems. |
 | — | Performance | Memory-aware streaming, vectorized normalization, and parallel column/file processing. |
 | — | API | Helpers for DataFrames, bytes, and file-like streams. |

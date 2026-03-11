@@ -228,7 +228,7 @@ report = unf_file("mixed_dates.csv", schema=schema)
 ```
 
 **CSV Data Example:**
-```csv
+```text
 date
 15.03.2024
 20-05-2024
@@ -310,7 +310,7 @@ uv run dartfx-unf \
 
 The order of types in the list doesn't matter:
 
-```json
+```text
 {"type": ["integer", "null"]}    # ← integer will be used
 {"type": ["null", "integer"]}    # ← integer will be used (same result)
 ```
@@ -326,7 +326,7 @@ The tool attempts to cast all columns to their specified schema types. If a cast
 ```
 
 **Example that causes an error:**
-```csv
+```text
 id,name,value
 alpha,Alice,100.5
 beta,Bob,200.75
@@ -348,7 +348,7 @@ This raises an error because `alpha` and `beta` cannot be cast to integers.
 ### Successful Type Conversions
 
 **Any type to string** (always succeeds):
-```csv
+```text
 id,value
 1,100
 2,200
@@ -367,7 +367,7 @@ Schema:
 Result: ✓ Success. `1` and `2` become `"1"` and `"2"`.
 
 **String to number** (succeeds if values are numeric):
-```csv
+```text
 id,amount
 "1","100.5"
 "2","200.75"
@@ -386,7 +386,7 @@ Schema:
 Result: ✓ Success, if all values are validly formatted numbers.
 
 **String to date** (succeeds if format matches schema):
-```csv
+```text
 date
 2024-02-16
 2024-02-17
@@ -419,7 +419,7 @@ If the CSV contains `16.02.2024`, it will parse successfully. If it contains `20
 **Problem:** Format in schema doesn't match the actual data.
 
 **Example:**
-```csv
+```text
 date
 16.02.2024
 17.02.2024

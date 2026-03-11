@@ -51,19 +51,6 @@ class UNFReport:
     timestamp. It provides built-in methods for serializing the results to
     standard JSON formats that comply with the project's JSON schema.
 
-    Attributes
-    ----------
-    result : FileResult | DatasetResult
-        The core result of the calculation. A ``FileResult`` contains column-level
-        UNFs, while a ``DatasetResult`` contains file-level results.
-    params : UNFParameters
-        The configuration used (digits, hash_bits, etc.).
-    timestamp : str, optional
-        ISO 8601 timestamp of when the report was generated. Set automatically
-        during initialization if not provided.
-    unf_version : str, default "6"
-        The version of the UNF specification used.
-
     Examples
     --------
     >>> from dartfx.unf import unf_file
@@ -88,10 +75,10 @@ class UNFReport:
             self.timestamp = datetime.now(UTC).isoformat()
 
     def to_dict(self, *, validate: bool = False) -> dict[str, Any]:
-        """Serialise the report to a plain dict matching the JSON schema.
+        """Serialize the report to a plain dict matching the JSON schema.
 
         If *validate* is True, the resulting dict is validated against
-        the bundled ``unf6_schema.json`` using the ``jsonschema`` library.
+        the bundled ``unf6.schema.json`` using the ``jsonschema`` library.
         """
         from dartfx.unf.serializers import JSONSerializer
 
@@ -99,7 +86,7 @@ class UNFReport:
         return serializer.to_dict(self)
 
     def to_json(self, indent: int = 2, *, validate: bool = False) -> str:
-        """Serialise the report to a JSON string."""
+        """Serialize the report to a JSON string."""
         from dartfx.unf.serializers import JSONSerializer
 
         serializer = JSONSerializer(indent=indent, validate=validate)

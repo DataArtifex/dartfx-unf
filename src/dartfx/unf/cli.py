@@ -13,7 +13,6 @@ from pathlib import Path
 from dartfx.unf.__about__ import __version__
 from dartfx.unf.core import unf_dataset, unf_file
 from dartfx.unf.parameters import UNFParameters
-from dartfx.unf.report import UNFReport
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -243,7 +242,9 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     if args.verbose:
-        _print_verbose(report)
+        from dartfx.unf.serializers import TableSerializer
+
+        print(TableSerializer().serialize(report))
     elif args.quiet:
         print(report.result.unf)
     elif args.output:
@@ -254,35 +255,6 @@ def main(argv: list[str] | None = None) -> int:
         print(report.to_json(validate=args.validate))
 
     return 0
-
-
-def _print_verbose(report: UNFReport) -> None:
-    """Print a human-friendly summary table of the UNF report."""
-    from dartfx.unf.report import DatasetResult, FileResult
-
-    res = report.result
-    print("-" * 80)
-    print(f"UNF Report: {res.label}")
-    print(f"Version:    {report.unf_version}")
-    print(f"UNF:        {res.unf}")
-    print(
-        f"Parameters: N={report.params.digits}, X={report.params.characters}, "
-        f"H={report.params.hash_bits}, R1={1 if report.params.truncate else 0}"
-    )
-    print("-" * 80)
-
-    if isinstance(res, FileResult):
-        print(f"{'COLUMN':<30} | {'TYPE':<12} | {'UNF'}")
-        print("-" * 80)
-        for col in res.columns:
-            print(f"{col.name[:30]:<30} | {col.type:<12} | {col.unf}")
-    elif isinstance(res, DatasetResult):
-        print(f"{'FILE':<30} | {'UNF'}")
-        print("-" * 80)
-        for entry in res.entries:
-            print(f"{entry.label[:30]:<30} | {entry.unf}")
-
-    print("-" * 80)
 
 
 if __name__ == "__main__":

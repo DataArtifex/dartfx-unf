@@ -538,7 +538,7 @@ def _iter_batches_parquet(
                 if k in df.columns and df[k].dtype != v
             }
             if overrides:
-                df = df.cast(overrides)
+                df = df.cast(cast(Any, overrides))
         yield df
 
 

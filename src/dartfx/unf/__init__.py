@@ -44,9 +44,12 @@ from dartfx.unf.schema import (
     parse_schema_inline,
     parse_schema_input,
 )
+from dartfx.unf.serializers import JSONSerializer, TableSerializer
 
 __all__ = [
     "__version__",
+    "JSONSerializer",
+    "TableSerializer",
     "UNFParameters",
     "UNFReport",
     "json_schema_to_polars_schema",

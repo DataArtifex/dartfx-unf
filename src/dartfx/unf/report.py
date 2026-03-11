@@ -6,12 +6,10 @@
 
 from __future__ import annotations
 
-import json
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from dartfx.unf.__about__ import __version__
 from dartfx.unf.parameters import UNFParameters
 
 
@@ -95,61 +93,21 @@ class UNFReport:
         If *validate* is True, the resulting dict is validated against
         the bundled ``unf6_schema.json`` using the ``jsonschema`` library.
         """
-        metadata: dict[str, Any] = {
-            "timestamp": self.timestamp,
-            "parameters": {
-                "N": self.params.digits,
-                "X": self.params.characters,
-                "H": self.params.hash_bits,
-                "rounding_mode": (
-                    "R1_truncate" if self.params.truncate else "IEEE_754_nearest_even"
-                ),
-            },
-            "options": _prune_empty(self.options),
-            "software": {
-                "name": "dartfx-unf",
-                "version": __version__,
-            },
-        }
+        from dartfx.unf.serializers import JSONSerializer
 
-        # Build result dict, removing empty optional fields.
-        result_dict = asdict(self.result)
-        result_dict = _prune_empty(result_dict)
-
-        report = {
-            "unf_version": "6",
-            "metadata": metadata,
-            "result": result_dict,
-        }
-
-        if validate:
-            from importlib.resources import files
-
-            from jsonschema import validate as validate_json
-
-            # Find bundled schema
-            schema_resource = files("dartfx.unf").joinpath("unf6_schema.json")
-            with schema_resource.open(encoding="utf-8") as f:
-                schema = json.load(f)
-            validate_json(instance=report, schema=schema)
-
-        return report
+        serializer = JSONSerializer(validate=validate)
+        return serializer.to_dict(self)
 
     def to_json(self, indent: int = 2, *, validate: bool = False) -> str:
         """Serialise the report to a JSON string."""
-        return json.dumps(self.to_dict(validate=validate), indent=indent)
+        from dartfx.unf.serializers import JSONSerializer
+
+        serializer = JSONSerializer(indent=indent, validate=validate)
+        return serializer.serialize(self)
 
 
 def _prune_empty(d: dict[str, Any]) -> dict[str, Any]:
     """Recursively remove keys with empty string values."""
-    pruned: dict[str, Any] = {}
-    for k, v in d.items():
-        if isinstance(v, dict):
-            pruned[k] = _prune_empty(v)
-        elif isinstance(v, list):
-            pruned[k] = [
-                _prune_empty(item) if isinstance(item, dict) else item for item in v
-            ]
-        elif v != "" or isinstance(v, bool):
-            pruned[k] = v
-    return pruned
+    from dartfx.unf.serializers import _prune_empty as _prune
+
+    return _prune(d)
